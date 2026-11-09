@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "source_device": "iPhone",
+  "attempts": [
+    {
+      "started_at": "2026-11-09T21:35:06.656735+00:00",
+      "binary_sha256": "b616fb8da6531de485107507a3414a0a8648eb821f981109247838f6de37e736",
+      "arguments": [
+        "--discover-phone"
+      ],
+      "report": {
+        "automatic_pairing_requested": false,
+        "connection_started": false,
+        "context_before_selector": {
+          "authorization_scope": "CoreBluetooth only; not proof of Classic channel permission",
+          "controller_power": 1,
+          "core_bluetooth_authorization": 3
+        },
+        "find_existing": false,
+        "full_feasibility_gate": "not_passed",
+        "inquiry_by_probe": false,
+        "live_audio": "not_tested",
+        "media_configuration_sent": false,
+        "mode": "discover-phone",
+        "os_selector_may_start_inquiry": true,
+        "schema": 1,
+        "selected_object_is_paired": true,
+        "selector_response": -1000,
+        "status": "selected_phone_not_uniquely_in_fresh_paired_inventory"
+      },
+      "exit_code": 3,
+      "stderr_bytes": 28254,
+      "stderr_persisted": false,
+      "finished_at": "2026-11-09T21:35:38.691200+00:00"
+    }
+  ],
+  "interpretation": {
+    "first_attempt": "OS selection succeeded and selected object reported paired, but exact fresh-inventory identity correlation failed before any channel open. Match-count cause was not captured by that binary.",
+    "native_discover": "not_yet_attempted",
+    "live_audio": "not_tested",
+    "full_feasibility_gate": "not_passed"
+  }
+}

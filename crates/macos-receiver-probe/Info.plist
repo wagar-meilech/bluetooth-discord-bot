@@ -5,5 +5,5 @@
   <key>CFBundleName</key><string>Bluetooth receiver feasibility probe</string>
   <key>CFBundleVersion</key><string>0.1.0</string>
   <key>NSBluetoothAlwaysUsageDescription</key>
-  <string>Check public Bluetooth receiver APIs and, only in explicit probe mode, briefly register and remove this probe's own audio service.</string>
+  <string>Test Bluetooth audio reception. Pairing and connection tests run only when you choose them.</string>
 </dict></plist>

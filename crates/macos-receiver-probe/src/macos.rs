@@ -1,3 +1,6 @@
+mod discover;
+mod paired;
+mod pairing;
 use objc2::{ClassType, msg_send, rc::Retained, sel};
 use objc2_core_bluetooth::CBManager;
 use objc2_foundation::{
@@ -18,6 +21,15 @@ const AVDTP_PSM: u16 = 0x0019;
 const OWN_CANDIDATE_HANDLE: u32 = 0x6A2D0001;
 
 pub fn run(mode: &str) -> (Value, u8) {
+    if mode == "discover-phone" {
+        return discover::run();
+    }
+    if mode == "pair-device-panel" {
+        return pairing::run();
+    }
+    if mode == "list-paired" {
+        return paired::list();
+    }
     if mode == "diagnose-context" {
         return diagnose_context();
     }

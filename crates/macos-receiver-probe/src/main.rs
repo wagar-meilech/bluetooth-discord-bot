@@ -1,3 +1,5 @@
+mod avdtp;
+
 use serde_json::json;
 use std::process::ExitCode;
 
@@ -6,6 +8,13 @@ mod macos;
 
 fn main() -> ExitCode {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if let [flag, packet] = args.as_slice()
+        && flag == "--decode-discover"
+    {
+        let (report, code) = avdtp::decode_hex(packet.to_str().unwrap_or(""));
+        println!("{report}");
+        return ExitCode::from(code);
+    }
     let mode = match args.as_slice() {
         [] => "preflight",
         [arg] if arg == "--preflight" => "preflight",
@@ -14,6 +23,9 @@ fn main() -> ExitCode {
         [arg] if arg == "--validate-sdp" => "validate-sdp",
         [arg] if arg == "--validate-own-handle" => "validate-own-handle",
         [arg] if arg == "--diagnose-context" => "diagnose-context",
+        [arg] if arg == "--list-paired" => "list-paired",
+        [arg] if arg == "--pair-device-panel" => "pair-device-panel",
+        [arg] if arg == "--discover-phone" => "discover-phone",
         [arg] if arg == "--probe-sdp-bare-keys" => "probe-sdp-bare-keys",
         [arg] if arg == "--probe-generic-l2cap" => "probe-generic-l2cap",
         [arg] if arg == "--probe-generic-avdtp-psm" => "probe-generic-avdtp-psm",
@@ -31,7 +43,7 @@ fn main() -> ExitCode {
             println!(
                 "{}",
                 json!({
-                    "usage": "macos-receiver-probe [--preflight | --preflight-warmup | --validate-sdp | --validate-own-handle | --diagnose-context | --probe-sdp | --probe-sdp-bare-keys | --probe-generic-l2cap | --probe-generic-avdtp-psm | --probe-generic-l2cap-warmup | --probe-generic-avdtp-psm-warmup | --probe-generic-avdtp-own-handle | --probe-generic-l2cap-own-handle | --probe-generic-l2cap-own-handle-number | --probe-generic-avdtp-own-handle-number]",
+                    "usage": "macos-receiver-probe [--preflight | --preflight-warmup | --validate-sdp | --validate-own-handle | --diagnose-context | --list-paired | --pair-device-panel | --discover-phone | --decode-discover HEX | --probe-sdp | --probe-sdp-bare-keys | --probe-generic-l2cap | --probe-generic-avdtp-psm | --probe-generic-l2cap-warmup | --probe-generic-avdtp-psm-warmup | --probe-generic-avdtp-own-handle | --probe-generic-l2cap-own-handle | --probe-generic-l2cap-own-handle-number | --probe-generic-avdtp-own-handle-number]",
                     "default": "preflight: controller and API inspection only",
                     "preflight-warmup": "read-only preflight after one second of public main-run-loop processing",
                     "validate-sdp": "parse bundled SDP in memory without publishing or contacting a device",
@@ -47,6 +59,10 @@ fn main() -> ExitCode {
                     "probe-generic-l2cap-own-handle-number": "dynamic-PSM own-handle control using plain unsigned32 NSNumber shortcut",
                     "probe-generic-avdtp-own-handle-number": "assigned-PSM own-handle control using the same NSNumber shortcut",
                     "diagnose-context": "read own bundle identity and CoreBluetooth authorization class getter only",
+                    "list-paired": "read cached paired-device state; sanitized stdout and local names on stderr",
+                    "pair-device-panel": "show explicit OS-managed pairing/discovery UI; operator confirms PIN",
+                    "discover-phone": "explicit OS picker, fresh paired/disconnected phone, one owned outbound AVDTP DISCOVER only",
+                    "decode-discover": "offline known-spec packet replay; no Bluetooth calls",
                     "receiver_implemented": false
                 })
             );
@@ -55,7 +71,7 @@ fn main() -> ExitCode {
         _ => {
             println!(
                 "{}",
-                json!({"status": "invalid_arguments", "usage": "macos-receiver-probe [--preflight | --preflight-warmup | --validate-sdp | --validate-own-handle | --diagnose-context | --probe-sdp | --probe-sdp-bare-keys | --probe-generic-l2cap | --probe-generic-avdtp-psm | --probe-generic-l2cap-warmup | --probe-generic-avdtp-psm-warmup | --probe-generic-avdtp-own-handle | --probe-generic-l2cap-own-handle | --probe-generic-l2cap-own-handle-number | --probe-generic-avdtp-own-handle-number]"})
+                json!({"status": "invalid_arguments", "usage": "macos-receiver-probe [--preflight | --preflight-warmup | --validate-sdp | --validate-own-handle | --diagnose-context | --list-paired | --pair-device-panel | --discover-phone | --decode-discover HEX | --probe-sdp | --probe-sdp-bare-keys | --probe-generic-l2cap | --probe-generic-avdtp-psm | --probe-generic-l2cap-warmup | --probe-generic-avdtp-psm-warmup | --probe-generic-avdtp-own-handle | --probe-generic-l2cap-own-handle | --probe-generic-l2cap-own-handle-number | --probe-generic-avdtp-own-handle-number]"})
             );
             return ExitCode::from(2);
         }
