@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>0x0001 ServiceClassIDList</key>
+  <array><data>EQs=</data></array>
+  <key>0x0004 ProtocolDescriptorList</key>
+  <array>
+    <array><data>AQA=</data><dict>
+      <key>DataElementType</key><integer>1</integer>
+      <key>DataElementSize</key><integer>2</integer>
+      <key>DataElementValue</key><integer>25</integer>
+    </dict></array>
+    <array><data>ABk=</data><dict>
+      <key>DataElementType</key><integer>1</integer>
+      <key>DataElementSize</key><integer>2</integer>
+      <key>DataElementValue</key><integer>259</integer>
+    </dict></array>
+  </array>
+  <key>0x0005 BrowseGroupList</key>
+  <array><data>EAI=</data></array>
+  <key>0x0009 BluetoothProfileDescriptorList</key>
+  <array><array><data>EQ0=</data><dict>
+    <key>DataElementType</key><integer>1</integer>
+    <key>DataElementSize</key><integer>2</integer>
+    <key>DataElementValue</key><integer>260</integer>
+  </dict></array></array>
+  <key>0x0100 ServiceName</key><string>Bluetooth Discord feasibility probe</string>
+  <key>0x0311 SupportedFeatures</key><dict>
+    <key>DataElementType</key><integer>1</integer>
+    <key>DataElementSize</key><integer>2</integer>
+    <key>DataElementValue</key><integer>2</integer>
+  </dict>
+</dict></plist>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleIdentifier</key><string>org.bluetooth-discord-bot.receiver-probe</string>
+  <key>CFBundleName</key><string>Bluetooth receiver feasibility probe</string>
+  <key>CFBundleVersion</key><string>0.1.0</string>
+  <key>NSBluetoothAlwaysUsageDescription</key>
+  <string>Check public Bluetooth receiver APIs and, only in explicit probe mode, briefly register and remove this probe's own audio service.</string>
+</dict></plist>
