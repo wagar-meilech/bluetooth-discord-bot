@@ -3,6 +3,12 @@
 BDB-005 / [GitHub #3](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/3).
 Observed on 2026-11-09. **The native Mac receiver gate has not passed.**
 
+Follow-up [controlled diagnosis](macos-sdp-diagnosis.md) now isolates a
+requested-PSM-dependent failure: a generic service returns an owned record at
+dynamic `0x1001`, but the same binary/payload with required AVDTP `0x19` does not.
+The initial observations below are retained as history. Windows feasibility is
+advancing independently, while the full two-platform product gate stays in place.
+
 This file preserves the initial attempt. The subsequent
 [controlled diagnosis](macos-sdp-diagnosis.md) demonstrates that a generic dynamic
 PSM can return a record and clean up, while the same generic fixture requesting
