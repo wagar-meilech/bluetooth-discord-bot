@@ -1,0 +1,92 @@
+{
+  "date": "2026-11-09",
+  "host": {
+    "os": "macOS 26.7.1",
+    "build": "25G241",
+    "arch": "arm64",
+    "sdk": "MacOSX27.0",
+    "rust": "1.94.0"
+  },
+  "observations": [
+    {
+      "command": "target/debug/macos-receiver-probe",
+      "exit_code": 0,
+      "stdout": {
+        "arch": "aarch64",
+        "coexistence": "not_tested",
+        "controller_class_before": 0,
+        "controller_identity": "default controller; built-in transport not established by this getter",
+        "controller_power": 1,
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "mode": "preflight",
+        "mutation_attempted": false,
+        "os": "Version 26.7.1 (Build 25G241)",
+        "public_selectors_available": true,
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "preflight_available"
+      },
+      "stderr": ""
+    },
+    {
+      "command": "target/debug/macos-receiver-probe --probe-sdp",
+      "exit_code": 5,
+      "stdout": {
+        "arch": "aarch64",
+        "coexistence": "not_tested",
+        "controller_class_before": 0,
+        "controller_identity": "default controller; built-in transport not established by this getter",
+        "controller_power": 1,
+        "detail": "The public API returned nil; this does not distinguish permission denial from a service/stack conflict.",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "mode": "probe-sdp",
+        "mutation_attempted": true,
+        "os": "Version 26.7.1 (Build 25G241)",
+        "public_selectors_available": true,
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "publication_rejected"
+      },
+      "stderr": "",
+      "owned_record_returned": false,
+      "cleanup_call_made": false,
+      "post_failure_controller_getters_observed": false
+    },
+    {
+      "command": "target/debug/macos-receiver-probe --validate-sdp",
+      "exit_code": 0,
+      "stdout": {
+        "arch": "aarch64",
+        "attributes_parsed": 6,
+        "coexistence": "not_tested",
+        "detail": "In-memory attribute parsing only; no server publication, channel registration, device connection, or audio reception.",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "mode": "validate-sdp",
+        "mutation_attempted": false,
+        "os": "Version 26.7.1 (Build 25G241)",
+        "parsed_psm": 25,
+        "public_selectors_available": true,
+        "receiver_implemented": false,
+        "schema": 1,
+        "server_publication_attempted": false,
+        "status": "local_sdp_attributes_accepted_expected_psm"
+      },
+      "stderr": ""
+    }
+  ],
+  "earlier_resolved_issue": {
+    "command": "initial read-only preflight",
+    "exit_code": 101,
+    "detail": "objc2 detected powerState SDK/runtime signedness mismatch before any publication; fixed with runtime-verified i32/u32 getter selection without disabling signature checks"
+  },
+  "gate": "not_passed",
+  "live_audio": "not_tested",
+  "coexistence": "not_tested",
+  "inconclusive_diagnostic": {
+    "detail": "An intermediate in-memory withServiceDictionary:device: constructor returned an object but getL2CAPPSM returned -536870160; equivalence to the publisher plist format was not established. Removed from final validation code and gate classification; superseded by explicitly documented per-attribute withElementValue parsing.",
+    "server_publication_attempted": false
+  }
+}
