@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>1</key>
+	<array>
+		<data>
+		glHYUiS4TjeWiheH7E8gSw==
+		</data>
+	</array>
+	<key>4</key>
+	<array>
+		<array>
+			<data>
+			AQA=
+			</data>
+			<dict>
+				<key>DataElementType</key>
+				<integer>1</integer>
+				<key>DataElementSize</key>
+				<integer>2</integer>
+				<key>DataElementValue</key>
+				<integer>4097</integer>
+			</dict>
+		</array>
+	</array>
+	<key>0</key>
+	<dict>
+		<key>DataElementType</key>
+		<integer>1</integer>
+		<key>DataElementSize</key>
+		<integer>4</integer>
+		<key>DataElementValue</key>
+		<integer>1781334017</integer>
+	</dict>
+</dict>
+</plist>

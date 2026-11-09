@@ -1,0 +1,76 @@
+{
+  "command": "target/debug/macos-receiver-probe --validate-own-handle",
+  "sandbox_policy": "require_escalated",
+  "before_fix": {
+    "exit_code": 4,
+    "stdout": {
+      "arch": "aarch64",
+      "coexistence": "not_tested",
+      "full_feasibility_gate": "not_passed",
+      "handle_values": [
+        {
+          "encoding": "explicit_unsigned_four_byte_element",
+          "size": null,
+          "type": null,
+          "valid_unsigned32_candidate": false,
+          "value": null
+        },
+        {
+          "encoding": "plain_unsigned32_number_shortcut",
+          "size": null,
+          "type": null,
+          "valid_unsigned32_candidate": false,
+          "value": null
+        }
+      ],
+      "live_audio": "not_tested",
+      "mode": "validate-own-handle",
+      "mutation_attempted": false,
+      "os": "Version 26.7.1 (Build 25G241)",
+      "public_selectors_available": true,
+      "receiver_implemented": false,
+      "schema": 1,
+      "server_publication_attempted": false,
+      "status": "local_handle_value_invalid"
+    },
+    "stderr": ""
+  },
+  "after_fix": {
+    "exit_code": 0,
+    "stdout": {
+      "arch": "aarch64",
+      "coexistence": "not_tested",
+      "full_feasibility_gate": "not_passed",
+      "handle_values": [
+        {
+          "encoding": "explicit_unsigned_four_byte_element",
+          "service_fixture": "generic-dynamic-own-handle-control.plist",
+          "size": 4,
+          "type": 1,
+          "valid_unsigned32_candidate": true,
+          "value": 1781334017
+        },
+        {
+          "encoding": "plain_unsigned32_number_shortcut",
+          "service_fixture": "generic-dynamic-own-handle-number-control.plist",
+          "size": 4,
+          "type": 1,
+          "valid_unsigned32_candidate": true,
+          "value": 1781334017
+        }
+      ],
+      "live_audio": "not_tested",
+      "mode": "validate-own-handle",
+      "mutation_attempted": false,
+      "os": "Version 26.7.1 (Build 25G241)",
+      "public_selectors_available": true,
+      "receiver_implemented": false,
+      "schema": 1,
+      "server_publication_attempted": false,
+      "status": "local_handle_values_valid"
+    },
+    "stderr": ""
+  },
+  "mutation_attempted": false,
+  "meaning": "Local fixed-fixture dispatch/typed-value regression only; no server publication or receiver proof"
+}
