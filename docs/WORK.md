@@ -64,3 +64,13 @@ Zoetrope setup returned `enabled: true` and `project_opt_in: true` for this exac
 Codex session. Its `docs/WORK.md#Tasks` source imported four tasks with
 `stale: false` and `error: null`. Runtime identity and state paths stay in local
 Zoetrope state rather than this repository.
+
+## Feasibility evidence
+
+[Draft PR #10](https://github.com/wagar-meilech/bluetooth-discord-bot/pull/10) contains
+the first native Mac prerequisite probe. Locked build, formatting and Clippy passed;
+read-only API/controller preflight and local SDP attribute parsing passed. The
+single service-publication attempt returned nil/exit 5 with no owned record.
+[Observed results and next options](feasibility/macos-receiver.md) keep that
+rejection distinct from untested live audio and Bluetooth coexistence. The Mac
+ticket and feature remain open/blocked; dependent work has not begun.

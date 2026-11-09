@@ -116,6 +116,26 @@ are established should work proceed to a safely owned incoming listener,
 protocol negotiation, decoded live phone audio, and the full two-platform gate.
 The full product remains behind that gate.
 
+## Options after this result
+
+1. **Preserve the requirements and diagnose the native rejection.** A bounded
+   follow-up can establish the intended app identity and OS Bluetooth-consent
+   context, inspect only relevant public diagnostics, and look for a documented
+   explanation of the publication failure. This is the next investigation path;
+   it is not evidence that another attempt will succeed. Avoid repeating the same
+   publication without new information or changing the host stack.
+2. **Revisit the Mac input requirement if the supported native path cannot be
+   established.** An external Bluetooth audio receiver/capture path, or another
+   Mac transport, would change the approved specification and needs an explicit
+   product decision. No such fallback has been selected.
+3. **Revisit platform sequencing.** Windows-first delivery would relax the user's
+   requirement that both native host paths pass before the full application.
+   Downstream work remains held under the current agreement.
+
+The reviewed prerequisite code and evidence are published in
+[draft PR #10](https://github.com/wagar-meilech/bluetooth-discord-bot/pull/10).
+Issues #2/#3 remain open and blocked; this draft does not claim live reception.
+
 ## Primary references
 
 The SDK public headers `IOBluetoothSDPServiceRecord.h` and
