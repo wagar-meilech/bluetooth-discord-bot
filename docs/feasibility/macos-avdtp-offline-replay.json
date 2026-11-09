@@ -1,0 +1,268 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-11-09T21:35:19.355793+00:00",
+  "evidence": "manual offline protocol replay diagnostic; not live-phone or approved product-seam automated tests",
+  "binary_sha256": "b616fb8da6531de485107507a3414a0a8648eb821f981109247838f6de37e736",
+  "cases": [
+    {
+      "case": "one_audio_source",
+      "arguments": [
+        "--decode-discover",
+        "12010400"
+      ],
+      "expected_status": "discover_accepted",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "stdout": {
+        "audio_source_seps": [
+          {
+            "in_use": false,
+            "seid": 1
+          }
+        ],
+        "endpoint_count": 1,
+        "evidence": "offline_protocol_replay",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "discover_accepted",
+        "transaction_label": 1
+      },
+      "stderr": ""
+    },
+    {
+      "case": "ignored_rfa_bits",
+      "arguments": [
+        "--decode-discover",
+        "12c10507"
+      ],
+      "expected_status": "discover_accepted",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "stdout": {
+        "audio_source_seps": [
+          {
+            "in_use": false,
+            "seid": 1
+          }
+        ],
+        "endpoint_count": 1,
+        "evidence": "offline_protocol_replay",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "discover_accepted",
+        "transaction_label": 1
+      },
+      "stderr": ""
+    },
+    {
+      "case": "wrong_transaction",
+      "arguments": [
+        "--decode-discover",
+        "22010400"
+      ],
+      "expected_status": "discover_transaction_mismatch",
+      "expected_exit": 4,
+      "exit_code": 4,
+      "stdout": {
+        "evidence": "offline_protocol_replay",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "discover_transaction_mismatch",
+        "transaction_label": 1
+      },
+      "stderr": ""
+    },
+    {
+      "case": "reject",
+      "arguments": [
+        "--decode-discover",
+        "130111"
+      ],
+      "expected_status": "discover_rejected",
+      "expected_exit": 4,
+      "exit_code": 4,
+      "stdout": {
+        "evidence": "offline_protocol_replay",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "receiver_implemented": false,
+        "reject_error_code": 17,
+        "schema": 1,
+        "status": "discover_rejected",
+        "transaction_label": 1
+      },
+      "stderr": ""
+    },
+    {
+      "case": "unsupported_fragment",
+      "arguments": [
+        "--decode-discover",
+        "160201"
+      ],
+      "expected_status": "discover_fragmentation_unsupported",
+      "expected_exit": 4,
+      "exit_code": 4,
+      "stdout": {
+        "evidence": "offline_protocol_replay",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "discover_fragmentation_unsupported",
+        "transaction_label": 1
+      },
+      "stderr": ""
+    },
+    {
+      "case": "truncated_sep",
+      "arguments": [
+        "--decode-discover",
+        "120104"
+      ],
+      "expected_status": "discover_payload_malformed",
+      "expected_exit": 4,
+      "exit_code": 4,
+      "stdout": {
+        "evidence": "offline_protocol_replay",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "discover_payload_malformed",
+        "transaction_label": 1
+      },
+      "stderr": ""
+    },
+    {
+      "case": "invalid_seid",
+      "arguments": [
+        "--decode-discover",
+        "12010000"
+      ],
+      "expected_status": "discover_seid_invalid",
+      "expected_exit": 4,
+      "exit_code": 4,
+      "stdout": {
+        "evidence": "offline_protocol_replay",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "discover_seid_invalid",
+        "transaction_label": 1
+      },
+      "stderr": ""
+    },
+    {
+      "case": "duplicate_seid",
+      "arguments": [
+        "--decode-discover",
+        "120104000400"
+      ],
+      "expected_status": "discover_seid_duplicate",
+      "expected_exit": 4,
+      "exit_code": 4,
+      "stdout": {
+        "evidence": "offline_protocol_replay",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "discover_seid_duplicate",
+        "transaction_label": 1
+      },
+      "stderr": ""
+    },
+    {
+      "case": "zero_endpoints",
+      "arguments": [
+        "--decode-discover",
+        "1201"
+      ],
+      "expected_status": "discover_accepted",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "stdout": {
+        "audio_source_seps": [],
+        "endpoint_count": 0,
+        "evidence": "offline_protocol_replay",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "discover_accepted",
+        "transaction_label": 1
+      },
+      "stderr": ""
+    },
+    {
+      "case": "unsolicited_command",
+      "arguments": [
+        "--decode-discover",
+        "1001"
+      ],
+      "expected_status": "discover_unexpected_command",
+      "expected_exit": 4,
+      "exit_code": 4,
+      "stdout": {
+        "evidence": "offline_protocol_replay",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "discover_unexpected_command",
+        "transaction_label": 1
+      },
+      "stderr": ""
+    },
+    {
+      "case": "general_reject",
+      "arguments": [
+        "--decode-discover",
+        "1101"
+      ],
+      "expected_status": "discover_general_reject",
+      "expected_exit": 4,
+      "exit_code": 4,
+      "stdout": {
+        "evidence": "offline_protocol_replay",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "discover_general_reject",
+        "transaction_label": 1
+      },
+      "stderr": ""
+    },
+    {
+      "case": "invalid_hex",
+      "arguments": [
+        "--decode-discover",
+        "xyz"
+      ],
+      "expected_status": "discover_hex_invalid",
+      "expected_exit": 4,
+      "exit_code": 4,
+      "stdout": {
+        "evidence": "offline_protocol_replay",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "discover_hex_invalid",
+        "transaction_label": 1
+      },
+      "stderr": ""
+    }
+  ],
+  "live_phone_signaling": "not_attempted_by_implementer",
+  "live_audio": "not_tested",
+  "full_feasibility_gate": "not_passed"
+}
