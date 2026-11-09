@@ -108,7 +108,8 @@ Cleanup detaches the delegate and requests close on this owned channel only.
 Close-request acceptance and observed native closure are distinct report fields.
 The owned channel, delegate and two-byte request stay retained until this one-shot
 process exits to protect pending callbacks/writes. `closeConnection` is never
-called. No channel listener or SDP advertisement is installed by this mode.
+called. No incoming-channel notification registration or SDP advertisement is
+installed by this mode.
 
 ## Offline packet replay
 
@@ -133,7 +134,8 @@ bridge-session/input boundary and from real installed-system evidence.
 - [x] A fresh inventory later contained one additional paired entry; selected
   identity remained uncorrelated at that point.
 - [x] iPhone My Devices lists the Mac as Not Connected (operator report).
-- [ ] DISCOVER picker selected the intended iPhone and fresh identity matched.
+- [x] A DISCOVER picker selected the intended iPhone and fresh identity matched
+  in the grouped legacy retry; the subsequent native open did not return.
 - [ ] Helper refused an existing connection or other preparation prerequisite.
 - [ ] Fresh channel opened and a DISCOVER response was received.
 - [ ] Another result; add exact sanitized status/error below.
@@ -163,8 +165,8 @@ submitted, and cleanup is unconfirmed. The original wrapper result and sanitized
 public-method stack summary are preserved in the connection artifact.
 
 The current build replaces that legacy call with modern Async and the pre-call
-hard process deadline described above. Its reviewed native retry is pending; no
-outbound DISCOVER packet has yet been sent.
+hard process deadline described above. Its reviewed native retry is waiting in
+the operator's device picker; no outbound DISCOVER packet has yet been sent.
 
 ## Evidence status
 
@@ -193,6 +195,8 @@ cargo build --locked -p macos-receiver-probe
 
 The offline replay artifact preserves the tested binary's hash. Actual operator
 runs preserve their own binary hashes independently of later source builds.
+Windows-target workspace Clippy with static CRT also passed after the Mac-only
+request constant was conditionally compiled for macOS.
 
 ## API references
 
