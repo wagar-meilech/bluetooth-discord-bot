@@ -1,0 +1,193 @@
+{
+  "schema": 1,
+  "date": "2026-11-09",
+  "source_device": "iPhone",
+  "operator_observations": {
+    "initially_nearby": true,
+    "initially_paired": false,
+    "normal_settings_pairing_result": "not supported",
+    "alternate_panel_result": "Paired, didn't stay connected I think",
+    "availability_after_preparation": "AFK; no further phone tests authorized while unavailable"
+  },
+  "initial_read_only_inventory": {
+    "paired_device_count": 14,
+    "connected_count": 1,
+    "name_hint_is_iphone_count": 0,
+    "identity_conclusion": "A renamed phone could lack the hint; counts do not identify the selected phone."
+  },
+  "attempts": [
+    {
+      "started_at": "2026-11-09T21:16:21.077167+00:00",
+      "binary_sha256": "3307a5580188ca85a1ee67fa3396f819c5a8ac1c6db6e3eb68f04771edc4d425",
+      "arguments": [
+        "--pair-device-panel"
+      ],
+      "report": {
+        "status": "startup_binding_abi_mismatch",
+        "selector": "runModal",
+        "runtime_class": "IOBluetoothConcretePairingController",
+        "binding_return_encoding": "q",
+        "runtime_return_encoding": "i",
+        "pairing_outcome": "not_observed"
+      },
+      "exit_code": 101,
+      "stderr_bytes": 398,
+      "stderr_persisted": false,
+      "finished_at": "2026-11-09T21:16:21.314261+00:00",
+      "diagnosis_source": "same-binary repeat: exit101, matching 398-byte Rust panic before modal call"
+    },
+    {
+      "started_at": "2026-11-09T21:18:40.854706+00:00",
+      "binary_sha256": "ba0825e0403883c369422552ddf39100f556c077ec0448562e76d08ba9fcbc43",
+      "arguments": [
+        "--pair-device-panel"
+      ],
+      "report": {
+        "audio_channel_open_requested": false,
+        "automatic_pin_confirmation": false,
+        "disconnect_when_done_requested": false,
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "mode": "pair-device-panel",
+        "operator_managed": true,
+        "os_panel_may_start_inquiry": true,
+        "panel_response": -1000,
+        "result_count": 1,
+        "result_is_paired": [
+          false
+        ],
+        "run_modal_return_encoding": "isize",
+        "schema": 1,
+        "status": "pairing_not_verified"
+      },
+      "exit_code": 3,
+      "stderr_bytes": 69236,
+      "stderr_persisted": false,
+      "finished_at": "2026-11-09T21:19:24.716839+00:00"
+    },
+    {
+      "started_at": "2026-11-09T21:20:32.953480+00:00",
+      "binary_sha256": "ba0825e0403883c369422552ddf39100f556c077ec0448562e76d08ba9fcbc43",
+      "arguments": [
+        "--list-paired"
+      ],
+      "exit_code": 0,
+      "report": {
+        "connection_started": false,
+        "devices": [
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 1
+          },
+          {
+            "is_connected": true,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 2
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 3
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 4
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 5
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 6
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 7
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 8
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 9
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 10
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 11
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 12
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 13
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 14
+          },
+          {
+            "is_connected": false,
+            "is_paired": true,
+            "name_hint_is_iphone": false,
+            "slot": 15
+          }
+        ],
+        "full_feasibility_gate": "not_passed",
+        "identifiers_in_stdout": false,
+        "inquiry_started": false,
+        "live_audio": "not_tested",
+        "mode": "list-paired",
+        "mutation_attempted": false,
+        "paired_device_count": 15,
+        "pairing_started": false,
+        "schema": 1,
+        "status": "paired_inventory_observed"
+      },
+      "stderr_bytes": 1623,
+      "stderr_persisted": false
+    }
+  ],
+  "interpretation": {
+    "modal_success": "The panel returned -1000; the returned device immediately reported isPaired=false.",
+    "fresh_inventory": "A subsequent fresh process reported 15 paired entries, all isPaired=true. One more entry does not establish identity of the selected phone.",
+    "selected_phone_bond": "not independently correlated",
+    "outbound_avdtp": "not_attempted",
+    "live_audio": "not_tested",
+    "coexistence": "not_tested",
+    "full_feasibility_gate": "not_passed"
+  }
+}

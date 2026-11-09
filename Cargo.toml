@@ -1,0 +1,8 @@
+[workspace]
+members = ["crates/macos-receiver-probe", "crates/windows-receiver-probe"]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.94"
+license = "MIT"

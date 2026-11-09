@@ -1,0 +1,51 @@
+{
+  "installed_on": "2026-11-09",
+  "method": "Unmodified copies of existing local skills",
+  "scanner": {
+    "command": "~/.local/bin/skill-scan <source-directory>",
+    "analysis": "Default local analyzers; no cloud services",
+    "result": "Each source: INFO=1; MEDIUM=0; HIGH=0; CRITICAL=0; errors=0",
+    "scope": "Skill packages only; a clean scan is not proof of safety"
+  },
+  "skills": {
+    "grilling": {
+      "source": "~/.codex/skills/grilling",
+      "files": {
+        "SKILL.md": "befdff1e27a1dfe2a294d5871169ac1afe16d983911daa4f32627514a48c1e15",
+        "agents/openai.yaml": "1411d7df7d99b7e621a1ff8283c8133cc2464be63d064e52d8ce169c6800ee9b"
+      }
+    },
+    "tdd": {
+      "source": "~/.agents/skills/tdd",
+      "files": {
+        "SKILL.md": "5505d25bbaa8fc14a79e4d20163936958992a2995b7f1dd1d6197edc9ed722e0",
+        "agents/openai.yaml": "ea6f01cf1b8c06a4b0f5b649d74b1b8ce8685e72af1b38d70d877693e092af0b",
+        "mocking.md": "3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef",
+        "tests.md": "859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a"
+      }
+    },
+    "to-spec": {
+      "source": "~/.agents/skills/to-spec",
+      "files": {
+        "SKILL.md": "43ad9cf318e5e7d3d1fa360253a37021796dc87a0c2e595ad262661a10f85088",
+        "agents/openai.yaml": "1c5b4d1e3d8e52287ef19cc2742fdbbfae1914ac75d33af3e4c8174f08cc55bb"
+      }
+    },
+    "implement-spec": {
+      "source": "~/.codex/skills/implement-spec",
+      "files": {
+        "SKILL.md": "7a22dd2e60b8fcece478ced9d2533582adf3520d695acd3ab715341535c9e56d",
+        "agents/openai.yaml": "fd41efb42c60c96320d6531be7e4bf15cbf5518cd652d57dff27ccffa46988e9"
+      }
+    },
+    "zoetrope-tracking": {
+      "source": "~/.codex/skills/zoetrope-tracking",
+      "files": {
+        "SKILL.md": "d96eac2066de77777d6355dd2b377227664bf7b03270526c7a07159f617f1f5a",
+        "references/project-setup.md": "9edfdd52dd4993fd7a52f2e9762bd1018026837c4f8d4997367757dce9ea88e6",
+        "references/reporting.md": "bff06a2029d6392f2ce2d272724f6c42cb5e3b00fe85de00068ed88e7a1c3486",
+        "references/sources.md": "93788334f83cbac28d046d1f1404dfe1021732f9daf4a42fbc8a12b2957457ad"
+      }
+    }
+  }
+}
