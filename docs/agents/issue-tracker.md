@@ -25,7 +25,8 @@ local task IDs. Split an approved spec into concrete tickets before
 GitHub triage labels and their local Status projection:
 
 - `needs-discussion`: unresolved product or testing decisions; mirror as `planned`.
-- `ready-for-agent`: approved scope and acceptance criteria; ready once dependencies finish.
+- `ready-for-agent`: approved scope and acceptance criteria; project as `planned`
+  locally until dependencies finish, then `ready-for-agent` at the task frontier.
 - `in-progress`: currently being worked on; mirror as `active`.
 - `blocked`: unable to proceed; record the actual blocker in Next or the issue.
 - Closed as completed: mirror as `done`, with validation evidence in the issue or PR.
