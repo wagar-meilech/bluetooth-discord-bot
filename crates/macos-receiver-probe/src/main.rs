@@ -26,6 +26,7 @@ fn main() -> ExitCode {
         [arg] if arg == "--list-paired" => "list-paired",
         [arg] if arg == "--pair-device-panel" => "pair-device-panel",
         [arg] if arg == "--discover-phone" => "discover-phone",
+        [arg] if arg == "--discover-phone-selected-object" => "discover-phone-selected-object",
         [arg] if arg == "--probe-sdp-bare-keys" => "probe-sdp-bare-keys",
         [arg] if arg == "--probe-generic-l2cap" => "probe-generic-l2cap",
         [arg] if arg == "--probe-generic-avdtp-psm" => "probe-generic-avdtp-psm",
@@ -43,7 +44,7 @@ fn main() -> ExitCode {
             println!(
                 "{}",
                 json!({
-                    "usage": "macos-receiver-probe [--preflight | --preflight-warmup | --validate-sdp | --validate-own-handle | --diagnose-context | --list-paired | --pair-device-panel | --discover-phone | --decode-discover HEX | --probe-sdp | --probe-sdp-bare-keys | --probe-generic-l2cap | --probe-generic-avdtp-psm | --probe-generic-l2cap-warmup | --probe-generic-avdtp-psm-warmup | --probe-generic-avdtp-own-handle | --probe-generic-l2cap-own-handle | --probe-generic-l2cap-own-handle-number | --probe-generic-avdtp-own-handle-number]",
+                    "usage": "macos-receiver-probe [--preflight | --preflight-warmup | --validate-sdp | --validate-own-handle | --diagnose-context | --list-paired | --pair-device-panel | --discover-phone | --discover-phone-selected-object | --decode-discover HEX | --probe-sdp | --probe-sdp-bare-keys | --probe-generic-l2cap | --probe-generic-avdtp-psm | --probe-generic-l2cap-warmup | --probe-generic-avdtp-psm-warmup | --probe-generic-avdtp-own-handle | --probe-generic-l2cap-own-handle | --probe-generic-l2cap-own-handle-number | --probe-generic-avdtp-own-handle-number]",
                     "default": "preflight: controller and API inspection only",
                     "preflight-warmup": "read-only preflight after one second of public main-run-loop processing",
                     "validate-sdp": "parse bundled SDP in memory without publishing or contacting a device",
@@ -62,6 +63,7 @@ fn main() -> ExitCode {
                     "list-paired": "read cached paired-device state; sanitized stdout and local names on stderr",
                     "pair-device-panel": "show explicit OS-managed pairing/discovery UI; operator confirms PIN",
                     "discover-phone": "explicit OS picker, fresh paired/disconnected phone, one owned outbound AVDTP DISCOVER only",
+                    "discover-phone-selected-object": "same guarded DISCOVER, retaining original OS-picker object after fresh identity validation",
                     "decode-discover": "offline known-spec packet replay; no Bluetooth calls",
                     "receiver_implemented": false
                 })
@@ -71,7 +73,7 @@ fn main() -> ExitCode {
         _ => {
             println!(
                 "{}",
-                json!({"status": "invalid_arguments", "usage": "macos-receiver-probe [--preflight | --preflight-warmup | --validate-sdp | --validate-own-handle | --diagnose-context | --list-paired | --pair-device-panel | --discover-phone | --decode-discover HEX | --probe-sdp | --probe-sdp-bare-keys | --probe-generic-l2cap | --probe-generic-avdtp-psm | --probe-generic-l2cap-warmup | --probe-generic-avdtp-psm-warmup | --probe-generic-avdtp-own-handle | --probe-generic-l2cap-own-handle | --probe-generic-l2cap-own-handle-number | --probe-generic-avdtp-own-handle-number]"})
+                json!({"status": "invalid_arguments", "usage": "macos-receiver-probe [--preflight | --preflight-warmup | --validate-sdp | --validate-own-handle | --diagnose-context | --list-paired | --pair-device-panel | --discover-phone | --discover-phone-selected-object | --decode-discover HEX | --probe-sdp | --probe-sdp-bare-keys | --probe-generic-l2cap | --probe-generic-avdtp-psm | --probe-generic-l2cap-warmup | --probe-generic-avdtp-psm-warmup | --probe-generic-avdtp-own-handle | --probe-generic-l2cap-own-handle | --probe-generic-l2cap-own-handle-number | --probe-generic-avdtp-own-handle-number]"})
             );
             return ExitCode::from(2);
         }

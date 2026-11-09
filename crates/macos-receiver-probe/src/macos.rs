@@ -21,8 +21,8 @@ const AVDTP_PSM: u16 = 0x0019;
 const OWN_CANDIDATE_HANDLE: u32 = 0x6A2D0001;
 
 pub fn run(mode: &str) -> (Value, u8) {
-    if mode == "discover-phone" {
-        return discover::run();
+    if mode == "discover-phone" || mode == "discover-phone-selected-object" {
+        return discover::run(mode == "discover-phone-selected-object");
     }
     if mode == "pair-device-panel" {
         return pairing::run();
