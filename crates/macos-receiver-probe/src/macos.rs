@@ -1,6 +1,7 @@
 use objc2::{ClassType, msg_send, rc::Retained, sel};
+use objc2_core_bluetooth::CBManager;
 use objc2_foundation::{
-    NSData, NSDictionary, NSObject, NSProcessInfo, NSPropertyListReadOptions,
+    NSBundle, NSData, NSDictionary, NSObject, NSProcessInfo, NSPropertyListReadOptions,
     NSPropertyListSerialization, NSString,
 };
 use objc2_io_bluetooth::{
@@ -13,6 +14,9 @@ use std::{ptr, time::Instant};
 const AVDTP_PSM: u16 = 0x0019;
 
 pub fn run(mode: &str) -> (Value, u8) {
+    if mode == "diagnose-context" {
+        return diagnose_context();
+    }
     // Inspection never starts discovery or accesses remote device identifiers.
     let host_class = IOBluetoothHostController::class();
     let record_class = IOBluetoothSDPServiceRecord::class();
@@ -73,10 +77,31 @@ pub fn run(mode: &str) -> (Value, u8) {
 
     // Only the explicit mode reaches publication. Parse the fixed, typed plist
     // through Foundation, rather than hand-writing Objective-C collection FFI.
-    let Some(dictionary) = service_definition() else {
+    let Some(dictionary) = service_definition(mode) else {
         report["status"] = json!("invalid_builtin_service_record");
         return (report, 4);
     };
+    let generic_control = matches!(mode, "probe-generic-l2cap" | "probe-generic-avdtp-psm");
+    let requested_psm = if mode == "probe-generic-l2cap" {
+        0x1001
+    } else {
+        AVDTP_PSM
+    };
+    report["experiment"] = json!(match mode {
+        "probe-sdp-bare-keys" => "a2dp_bare_decimal_keys",
+        "probe-generic-l2cap" => "generic_custom_uuid_l2cap_control",
+        "probe-generic-avdtp-psm" => "generic_custom_uuid_assigned_avdtp_psm_control",
+        _ => "a2dp_original_hex_label_keys",
+    });
+    report["attribute_key_style"] = json!(if mode == "probe-sdp" {
+        "hex_with_label"
+    } else {
+        "bare_decimal"
+    });
+    report["generic_control_only"] = json!(generic_control);
+    report["requested_psm"] = json!(requested_psm);
+    report["record_returned"] = json!(false);
+    report["cleanup_attempted"] = json!(false);
     let started = Instant::now();
     report["mutation_attempted"] = json!(true);
     // SAFETY: This non-null NSDictionary was parsed from the bundled immutable
@@ -94,6 +119,7 @@ pub fn run(mode: &str) -> (Value, u8) {
     let mut owned = OwnedRegistration {
         record: Some(record),
     };
+    report["record_returned"] = json!(true);
     let mut assigned_psm = 0u16;
     // SAFETY: We hold exactly the newly published record and provide a valid
     // writable u16. No discovered/system records or channels are touched.
@@ -106,8 +132,9 @@ pub fn run(mode: &str) -> (Value, u8) {
     };
     // Remove before formatting/returning diagnostic results, on every branch.
     let removal_result = owned.remove();
-    report["requested_psm"] = json!(AVDTP_PSM);
+    report["cleanup_attempted"] = json!(true);
     report["psm_read_ioreturn"] = json!(psm_result);
+    report["psm_exact"] = json!(psm_result == 0 && assigned_psm == requested_psm);
     report["assigned_psm"] = if psm_result == 0 {
         json!(assigned_psm)
     } else {
@@ -131,7 +158,7 @@ pub fn run(mode: &str) -> (Value, u8) {
         ("controller_state_changed", 7)
     } else if psm_result != 0 {
         ("assigned_psm_unavailable", 5)
-    } else if assigned_psm != AVDTP_PSM {
+    } else if assigned_psm != requested_psm {
         ("psm_remapped", 5)
     } else {
         ("exact_psm_published_and_removed_prerequisite_only", 0)
@@ -208,8 +235,14 @@ fn controller_snapshot(controller: &IOBluetoothHostController) -> Option<(u32, u
     Some((power, device_class))
 }
 
-fn service_definition() -> Option<Retained<NSDictionary>> {
-    let data = NSData::with_bytes(include_bytes!("../audio-sink.plist"));
+fn service_definition(mode: &str) -> Option<Retained<NSDictionary>> {
+    let bytes: &[u8] = match mode {
+        "probe-sdp-bare-keys" => include_bytes!("../audio-sink-bare-keys.plist"),
+        "probe-generic-l2cap" => include_bytes!("../generic-l2cap-control.plist"),
+        "probe-generic-avdtp-psm" => include_bytes!("../generic-avdtp-psm-control.plist"),
+        _ => include_bytes!("../audio-sink.plist"),
+    };
+    let data = NSData::with_bytes(bytes);
     // SAFETY: A null format output is permitted; the immutable plist is owned.
     let plist = unsafe {
         NSPropertyListSerialization::propertyListWithData_options_format_error(
@@ -225,7 +258,7 @@ fn service_definition() -> Option<Retained<NSDictionary>> {
 fn validate_service_definition(mut report: Value) -> (Value, u8) {
     report["mutation_attempted"] = json!(false);
     report["server_publication_attempted"] = json!(false);
-    let Some(dictionary) = service_definition() else {
+    let Some(dictionary) = service_definition("validate-sdp") else {
         report["status"] = json!("invalid_builtin_service_record");
         return (report, 4);
     };
@@ -299,4 +332,43 @@ fn validate_service_definition(mut report: Value) -> (Value, u8) {
         "In-memory attribute parsing only; no server publication, channel registration, device connection, or audio reception."
     );
     (report, if valid { 0 } else { 4 })
+}
+
+fn diagnose_context() -> (Value, u8) {
+    let bundle = NSBundle::mainBundle();
+    let purpose_key = NSString::from_str("NSBluetoothAlwaysUsageDescription");
+    let mut report = json!({
+        "schema": 1,
+        "mode": "diagnose-context",
+        "mutation_attempted": false,
+        "server_publication_attempted": false,
+        "manager_instantiated": false,
+        "bundle_identifier": bundle.bundleIdentifier().map(|identifier| identifier.to_string()),
+        "application_bundle": bundle.bundlePath().to_string().ends_with(".app"),
+        "bluetooth_usage_description_present": bundle.objectForInfoDictionaryKey(&purpose_key).is_some(),
+        "authorization_scope": "CoreBluetooth only; not proof of IOBluetooth publication permission",
+        "live_audio": "not_tested",
+        "coexistence": "not_tested",
+        "full_feasibility_gate": "not_passed",
+        "receiver_implemented": false
+    });
+    if CBManager::class()
+        .class_method(sel!(authorization))
+        .is_none()
+    {
+        report["status"] = json!("authorization_class_getter_unavailable");
+        return (report, 3);
+    }
+    // SAFETY: This is the public class getter, explicitly documented for checking
+    // authorization before allocating a manager. No manager is instantiated,
+    // scanning/advertising started, or consent request forced by this code.
+    let authorization = unsafe { CBManager::authorization_class() }.0;
+    report["core_bluetooth_authorization"] = json!({
+        "raw": authorization,
+        "name": match authorization {
+            0 => "not_determined", 1 => "restricted", 2 => "denied", 3 => "allowed_always", _ => "unknown"
+        }
+    });
+    report["status"] = json!("context_observed");
+    (report, 0)
 }

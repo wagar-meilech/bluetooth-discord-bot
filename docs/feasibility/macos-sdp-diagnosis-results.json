@@ -1,0 +1,166 @@
+{
+  "date": "2026-11-09",
+  "feedback_loop": "macos-receiver-probe publication mode: exact requested PSM and successful owned cleanup vs publication_rejected/exit5; receiver/hardware gate is a separate unpassed outcome",
+  "hypotheses": [
+    {
+      "rank": 1,
+      "hypothesis": "CLI identity/TCC context",
+      "prediction": "A matched read-only authorization/identity comparison or controlled own-copy launch context may reveal a difference; allowed CoreBluetooth alone cannot certify IOBluetooth publication"
+    },
+    {
+      "rank": 2,
+      "hypothesis": "Publisher key interpretation",
+      "prediction": "Changing only top-level keys while preserving all values may allow publication"
+    },
+    {
+      "rank": 3,
+      "hypothesis": "Assigned AVDTP/profile ownership",
+      "prediction": "A generic custom-UUID dynamic-PSM publication may succeed when the A2DP candidate fails"
+    },
+    {
+      "rank": 4,
+      "hypothesis": "General SDP publication/admission failure",
+      "prediction": "The generic control may fail too, without isolating an exact cause"
+    }
+  ],
+  "observations": [
+    {
+      "sequence": 1,
+      "command": "target/debug/macos-receiver-probe --diagnose-context",
+      "sandbox_policy": "require_escalated",
+      "timeout_seconds": 20,
+      "exit_code": 0,
+      "stdout": {
+        "application_bundle": false,
+        "authorization_scope": "CoreBluetooth only; not proof of IOBluetooth publication permission",
+        "bluetooth_usage_description_present": true,
+        "bundle_identifier": "org.bluetooth-discord-bot.receiver-probe",
+        "coexistence": "not_tested",
+        "core_bluetooth_authorization": {
+          "name": "allowed_always",
+          "raw": 3
+        },
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "manager_instantiated": false,
+        "mode": "diagnose-context",
+        "mutation_attempted": false,
+        "receiver_implemented": false,
+        "schema": 1,
+        "server_publication_attempted": false,
+        "status": "context_observed"
+      },
+      "stderr": ""
+    },
+    {
+      "sequence": 2,
+      "command": "target/debug/macos-receiver-probe --probe-sdp-bare-keys",
+      "sandbox_policy": "require_escalated",
+      "timeout_seconds": 20,
+      "exit_code": 5,
+      "stdout": {
+        "arch": "aarch64",
+        "attribute_key_style": "bare_decimal",
+        "coexistence": "not_tested",
+        "controller_class_before": 0,
+        "controller_identity": "default controller; built-in transport not established by this getter",
+        "controller_power": 1,
+        "detail": "The public API returned nil; this does not distinguish permission denial from a service/stack conflict.",
+        "experiment": "a2dp_bare_decimal_keys",
+        "full_feasibility_gate": "not_passed",
+        "live_audio": "not_tested",
+        "mode": "probe-sdp-bare-keys",
+        "mutation_attempted": true,
+        "os": "Version 26.7.1 (Build 25G241)",
+        "public_selectors_available": true,
+        "receiver_implemented": false,
+        "schema": 1,
+        "status": "publication_rejected"
+      },
+      "stderr": "",
+      "owned_record_returned": false,
+      "cleanup_call_made": false,
+      "post_failure_controller_getters_observed": false
+    },
+    {
+      "sequence": 3,
+      "command": "target/debug/macos-receiver-probe --probe-generic-l2cap",
+      "sandbox_policy": "require_escalated",
+      "timeout_seconds": 20,
+      "exit_code": 0,
+      "stdout": {
+        "arch": "aarch64",
+        "assigned_psm": 4097,
+        "attribute_key_style": "bare_decimal",
+        "cleanup_attempted": true,
+        "coexistence": "not_tested; controller getters do not prove peripheral/audio behavior",
+        "controller_class_after": 0,
+        "controller_class_before": 0,
+        "controller_getters_unchanged": true,
+        "controller_identity": "default controller; built-in transport not established by this getter",
+        "controller_power": 1,
+        "controller_power_after": 1,
+        "experiment": "generic_custom_uuid_l2cap_control",
+        "full_feasibility_gate": "not_passed",
+        "generic_control_only": true,
+        "live_audio": "not_tested",
+        "mode": "probe-generic-l2cap",
+        "mutation_attempted": true,
+        "os": "Version 26.7.1 (Build 25G241)",
+        "psm_exact": true,
+        "psm_read_ioreturn": 0,
+        "public_selectors_available": true,
+        "receiver_implemented": false,
+        "record_returned": true,
+        "registration_duration_ms": 0,
+        "removal_ioreturn": 0,
+        "requested_psm": 4097,
+        "schema": 1,
+        "status": "exact_psm_published_and_removed_prerequisite_only"
+      },
+      "stderr": "",
+      "owned_record_returned": true,
+      "cleanup_call_made": true,
+      "post_failure_controller_getters_observed": "not applicable; successful control recorded getters after cleanup"
+    },
+    {
+      "sequence": 4,
+      "command": "target/debug/macos-receiver-probe --probe-generic-avdtp-psm",
+      "sandbox_policy": "require_escalated",
+      "timeout_seconds": 20,
+      "exit_code": 5,
+      "stdout": {
+        "arch": "aarch64",
+        "attribute_key_style": "bare_decimal",
+        "cleanup_attempted": false,
+        "coexistence": "not_tested",
+        "controller_class_before": 0,
+        "controller_identity": "default controller; built-in transport not established by this getter",
+        "controller_power": 1,
+        "detail": "The public API returned nil; this does not distinguish permission denial from a service/stack conflict.",
+        "experiment": "generic_custom_uuid_assigned_avdtp_psm_control",
+        "full_feasibility_gate": "not_passed",
+        "generic_control_only": true,
+        "live_audio": "not_tested",
+        "mode": "probe-generic-avdtp-psm",
+        "mutation_attempted": true,
+        "os": "Version 26.7.1 (Build 25G241)",
+        "public_selectors_available": true,
+        "receiver_implemented": false,
+        "record_returned": false,
+        "requested_psm": 25,
+        "schema": 1,
+        "status": "publication_rejected"
+      },
+      "stderr": "",
+      "owned_record_returned": false,
+      "cleanup_call_made": false,
+      "post_failure_controller_getters_observed": false
+    }
+  ],
+  "generic_control": "published on requested dynamic PSM0x1001 and removed successfully; not A2DP evidence",
+  "gate": "not_passed",
+  "assigned_psm_control": "same generic fixture except uint16 requested PSM0x1001->0x19 returned nil; no returned record or cleanup call",
+  "conclusion": "Observed high-level publication/record materialization depends on requested PSM in the matched pair; exact system cause unclassified, no owner or blanket API restriction proven; live receiver gate not passed",
+  "paired_confirmation": "macos-sdp-paired-confirmation.json; same binary/context/policy confirms dynamic record returned and assigned PSM record unavailable"
+}

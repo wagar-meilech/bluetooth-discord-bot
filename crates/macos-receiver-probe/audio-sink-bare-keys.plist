@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>1</key>
+	<array>
+		<data>
+		EQs=
+		</data>
+	</array>
+	<key>4</key>
+	<array>
+		<array>
+			<data>
+			AQA=
+			</data>
+			<dict>
+				<key>DataElementType</key>
+				<integer>1</integer>
+				<key>DataElementSize</key>
+				<integer>2</integer>
+				<key>DataElementValue</key>
+				<integer>25</integer>
+			</dict>
+		</array>
+		<array>
+			<data>
+			ABk=
+			</data>
+			<dict>
+				<key>DataElementType</key>
+				<integer>1</integer>
+				<key>DataElementSize</key>
+				<integer>2</integer>
+				<key>DataElementValue</key>
+				<integer>259</integer>
+			</dict>
+		</array>
+	</array>
+	<key>5</key>
+	<array>
+		<data>
+		EAI=
+		</data>
+	</array>
+	<key>9</key>
+	<array>
+		<array>
+			<data>
+			EQ0=
+			</data>
+			<dict>
+				<key>DataElementType</key>
+				<integer>1</integer>
+				<key>DataElementSize</key>
+				<integer>2</integer>
+				<key>DataElementValue</key>
+				<integer>260</integer>
+			</dict>
+		</array>
+	</array>
+	<key>256</key>
+	<string>Bluetooth Discord feasibility probe</string>
+	<key>785</key>
+	<dict>
+		<key>DataElementType</key>
+		<integer>1</integer>
+		<key>DataElementSize</key>
+		<integer>2</integer>
+		<key>DataElementValue</key>
+		<integer>2</integer>
+	</dict>
+</dict>
+</plist>

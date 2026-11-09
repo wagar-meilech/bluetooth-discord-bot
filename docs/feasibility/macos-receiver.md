@@ -3,6 +3,12 @@
 BDB-005 / [GitHub #3](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/3).
 Observed on 2026-11-09. **The native Mac receiver gate has not passed.**
 
+This file preserves the initial attempt. The subsequent
+[controlled diagnosis](macos-sdp-diagnosis.md) demonstrates that a generic dynamic
+PSM can return a record and clean up, while the same generic fixture requesting
+assigned PSM `0x19` returns no record on the same binary. That narrows the failure
+without proving a particular owner/restriction or passing native audio reception.
+
 ## Result
 
 The reusable Rust bindings compiled and the corrected read-only preflight
