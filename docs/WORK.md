@@ -32,8 +32,8 @@ meaningful transitions. GitHub issue links were checked on 2026-11-09.
 | BDB-001 | Install project skills and configure GitHub Issues and Zoetrope tracking | done | main | None | Setup verified; see evidence below |
 | BDB-002 | [Agree the product behavior, architecture constraints, and test seams through grilling (#1)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/1) | done | main | BDB-001 | Q25/Q26 confirmed; approved spec and tickets published |
 | BDB-003 | Publish the agreed spec and create implementation tickets | done | main | BDB-002 | [Spec #2](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/2) and tickets #3–#9 published |
-| BDB-004 | [Implement and validate the approved Rust bridge (spec #2)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/2) | blocked | main | BDB-003 | Native Mac service publication returned nil; diagnose BDB-005 before downstream work |
-| BDB-005 | [Prove native macOS Bluetooth receiver feasibility (#3)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/3) | active | /root/macos_receiver | None | macOS-focused continuation: test main-runloop initialization and public explicit-handle assignment, then trace lookup if needed |
+| BDB-004 | [Implement and validate the approved Rust bridge (spec #2)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/2) | blocked | main | BDB-003 | Native capability gate remains unpassed; BDB-005 is testing sink-initiated iPhone signaling |
+| BDB-005 | [Prove native macOS Bluetooth receiver feasibility (#3)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/3) | active | /root/macos_receiver | None | Build bounded sink-initiated AVDTP DISCOVER probe for explicitly selected paired iPhone; initialization/handle variations did not resolve local publication |
 | BDB-006 | [Prove Windows Bluetooth input, isolation, and coexistence (#4)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/4) | blocked | main | None | Windows CI passed; verified executable ready, awaiting real phone/operator results in windows-hardware-results.md |
 | BDB-007 | [Build minimal local audio-to-Discord feasibility harness (#5)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/5) | planned | unassigned | BDB-006 | Reuse a proven native input for the common harness; full gate still requires Mac and Windows |
 | BDB-008 | [Record complete two-platform hardware feasibility gate (#6)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/6) | planned | unassigned | BDB-005, BDB-006, BDB-007 | Record both real source-to-listener paths; no full app until passed |
@@ -48,9 +48,10 @@ status/ownership/dependencies remain in this table and GitHub. A source status i
 not hardware verification.
 
 The Mac candidate was investigated first and its PSM-dependent failure isolated.
-Windows feasibility and the common harness can now progress independently of
-that blocked backend. This updates implementation sequencing; BDB-008 still
-requires BDB-005, BDB-006 and BDB-007 before any full product implementation.
+Mac work is active on sink-initiated signaling to the user's iPhone. Windows
+feasibility and the common harness can progress independently of that unresolved
+backend. BDB-008 still requires BDB-005, BDB-006 and BDB-007 before any full
+product implementation.
 
 ## Setup evidence
 
@@ -78,7 +79,7 @@ read-only API/controller preflight and local SDP attribute parsing passed. The
 single service-publication attempt returned nil/exit 5 with no owned record.
 [Observed results and next options](feasibility/macos-receiver.md) keep that
 rejection distinct from untested live audio and Bluetooth coexistence. The Mac
-ticket and feature remain open/blocked. Further
+ticket is active and the feature remains blocked on capability evidence. Further
 [controlled diagnosis](feasibility/macos-sdp-diagnosis.md) isolated requested-PSM
 dependence. Windows feasibility is being advanced independently; full product
 work remains behind the unchanged two-platform gate.
