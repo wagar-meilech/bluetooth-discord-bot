@@ -1,6 +1,7 @@
 use serde_json::{Value, json};
 
 pub(crate) const TRANSACTION: u8 = 1;
+#[cfg(target_os = "macos")]
 pub(crate) const DISCOVER_REQUEST: [u8; 2] = [0x10, 0x01];
 pub(crate) const MAX_RESPONSE: usize = 1024;
 
