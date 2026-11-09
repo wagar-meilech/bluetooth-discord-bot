@@ -1,0 +1,22 @@
+[package]
+name = "windows-receiver-probe"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+serde_json = "1.0"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+ctrlc = "3.5"
+windows = { version = "0.62.2", features = [
+    "Devices_Enumeration",
+    "Foundation_Metadata",
+    "Media_Audio",
+    "System_Profile",
+    "Win32_System_Com",
+    "Win32_System_WinRT",
+] }
+windows-future = "0.3.2"
