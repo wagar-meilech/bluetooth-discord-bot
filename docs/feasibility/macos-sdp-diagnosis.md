@@ -100,6 +100,60 @@ or private API was used.
 - [Apple class authorization getter](https://developer.apple.com/documentation/corebluetooth/cbmanager/authorization-swift.type.property).
 - [Apple command-line tool Info.plist/signing support](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Procedures/Procedures.html#//apple_ref/doc/uid/TP40005929-CH4-SW6).
 
+## Independent environment and framework observations
+
+System Information reports an Apple BCM_4387 controller, powered on, using PCIe.
+Only chipset/state/transport/vendor were retained; no device names, addresses,
+or pairing records were saved. This supports the presence of onboard hardware
+independently of the framework's default-controller getter.
+
+A minimal ad-hoc-signed copy of the probe was packaged as an app in a temporary
+directory for a **context-only** check. With the default command sandbox its
+CoreBluetooth class getter reported denied (2). Outside that sandbox both the
+CLI and app copy reported allowed (3). The earlier denied result is therefore a
+launch-policy confound, not evidence that the operator denied the app. These are
+context observations, not a matched native-publication comparison or proof that
+signing repairs SDP. No manager or new permission request was created.
+
+Probe-only unified logs during a nil-returning attempt say `TCC is approved`,
+`Add Service Dict`, `Added service with handle <opaque handle>`, then
+`IOBluetoothGetLocalServices`. Treat the add message as a stage observation,
+not proof that the full public call returned an owned receiver.
+
+Read-only disassembly of this host's public wrapper in a probe stopped before
+main shows it returning nil when its helper reports an error or supplies no
+record. Inspection of that helper's existing implementation shows a lower-layer
+add followed by lookup of the returned handle among local service records; a
+missing match takes a generic-error path. No private selector was invoked by
+the debugger or added to product code. This control flow is consistent with a
+post-add lookup/materialization failure; the precise runtime error/branch was
+not observed directly.
+
+An attempted breakpoint capture of that native return did not reach publication:
+the debugger-launched probe observed controller power 0 and exited 3, while
+direct runs observed power 1. The program's check was not bypassed. This changed
+debugger context did not reproduce the established loop and is not evidence that
+the real controller was off or that a particular native error code occurred.
+
+## Standard profile requirement and implementation consequence
+
+A2DP v1.4.1 section 5.3, Table 5.7 marks the sink record's L2CAP parameter
+`PSM=AVDTP` mandatory. SIG Assigned Numbers section 2.5 assigns AVDTP `0x0019`.
+Consequently the successful generic `0x1001` control cannot be substituted for
+standard phone-speaker compatibility. [A2DP specification](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/a2dp_v1-4-1_1752513648/A2DP_v1.4.1/out/en/index-en.html),
+[assigned PSMs](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Assigned_Numbers/out/en/index-en.html).
+
+The current public-API backend cannot obtain the owned standard-PSM service record
+needed to proceed safely to its receiver listener. An identified alternative
+public backend or a resolved framework behavior is still needed. This conclusion
+is about the tested path, not universal Mac impossibility or a proven service
+owner. The code does not adopt an ambiguous system channel, depend on log-derived
+handles, or call an undocumented replacement API.
+
+Windows feasibility can advance independently using its documented receiver
+API. Both native paths and the installed source-to-listener system must still
+pass before full product implementation.
+
 ## Validation and scope
 
 The final code passes `cargo fmt --all -- --check`,
