@@ -1,0 +1,60 @@
+name: Windows receiver probe
+
+on:
+  pull_request:
+    paths:
+      - 'Cargo.*'
+      - 'rust-toolchain.toml'
+      - 'crates/**'
+      - '.github/workflows/windows-receiver-probe.yml'
+      - 'docs/feasibility/windows-receiver-probe.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-probe:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -C target-feature=+crt-static
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install project toolchain
+        run: rustup toolchain install 1.94.0 --profile minimal --component rustfmt --component clippy --target x86_64-pc-windows-msvc
+      - name: Check formatting
+        run: cargo fmt --all --check
+      - name: Check Windows code
+        run: cargo clippy --locked --workspace --all-targets --target x86_64-pc-windows-msvc -- -D warnings
+      - name: Build executable
+        run: cargo build --locked --release -p windows-receiver-probe --target x86_64-pc-windows-msvc
+      - name: Assemble downloadable diagnostic
+        run: |
+          New-Item -ItemType Directory -Force artifact | Out-Null
+          Copy-Item target/x86_64-pc-windows-msvc/release/windows-receiver-probe.exe artifact/
+          Copy-Item docs/feasibility/windows-receiver-probe.md artifact/README.md
+          $digest = (Get-FileHash artifact/windows-receiver-probe.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$digest *windows-receiver-probe.exe" | Set-Content artifact/SHA256SUMS.txt -Encoding ascii
+          @{
+            source_commit = $env:GITHUB_SHA
+            target = 'x86_64-pc-windows-msvc'
+            rust_toolchain = '1.94.0'
+            crt_linkage = 'static'
+            hardware_gate = 'untested'
+            full_feasibility_gate = 'not_passed'
+          } | ConvertTo-Json | Set-Content artifact/build-info.json -Encoding utf8
+      - name: Upload executable and run instructions
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-receiver-probe-x86_64
+          path: artifact/
+          if-no-files-found: error
+          retention-days: 14

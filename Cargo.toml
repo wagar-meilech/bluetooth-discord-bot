@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/macos-receiver-probe"]
+members = ["crates/macos-receiver-probe", "crates/windows-receiver-probe"]
 resolver = "2"
 
 [workspace.package]
