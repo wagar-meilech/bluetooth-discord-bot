@@ -226,24 +226,39 @@ runs preserve their own binary hashes independently of later source builds.
 Windows-target workspace Clippy with static CRT also passed after the Mac-only
 request constant was conditionally compiled for macOS.
 
-## Next public control if object-origin evidence does not resolve the failure
+## Separate public baseband control
 
-The smallest separate transport control is public `openConnection:` with a
-non-nil retained callback target. SDK27 `IOBluetoothDevice.h` documents asynchronous
+```sh
+target/debug/macos-receiver-probe --connect-phone
+```
+
+This explicit helper is built for review; **no native baseband-control result is
+recorded yet**. It opens only a baseband connection using public `openConnection:`
+with a non-nil retained target. SDK27 `IOBluetoothDevice.h` documents asynchronous
 `connectionComplete:status:` delivery, default page timeout and no authentication
-requirement. Reusing operator selection, exact identity validation, disconnected
-precondition, main run loop and the pre-call hard watchdog could test baseband
-reachability without opening L2CAP or sending DISCOVER. This is an API plan only;
-no baseband-control implementation or native run is claimed.
+requirement. No L2CAP, DISCOVER, authentication or pairing request is chained.
 
-A successful callback plus public `isConnected=true` would support baseband
-reachability, not authenticated A2DP. A failure would remain a lower-layer
-prerequisite diagnostic. The ACL is shared: the helper must not call
-`closeConnection`, and the link may remain connected after it exits. The operator
-may need to disconnect only the phone manually before a later strict DISCOVER
-probe. If an authentication-required comparison is warranted later, the public
-async overload exists; synchronous `requestAuthentication` explicitly initiates
-pairing and is not part of this proposed control.
+It reuses the operator picker, exact selected-address/state validation, original
+OS-picker object and immediate paired/disconnected/context checks. The
+original-object comparison's no-op skip does not apply here: this is a different
+API operation, even when both device objects are identical. A separate target
+class implements the public device callback protocol, preserving the L2CAP
+delegate's selector/protocol set. Queue/run-loop waiting is bounded; the same
+25-second timer-only watchdog is armed before native submission. The target and
+device stay retained through process exit for pending callbacks.
+
+Saved results contain submission status, callback status, an exact-selected-object
+boolean and selected-device `isConnected` after callback. An unexpected callback
+object fails closed without logging pointer values. A successful callback plus
+`isConnected=true` supports baseband reachability; it does not prove authenticated
+A2DP. A failure remains a lower-layer prerequisite diagnostic and does not name
+an HCI/authentication cause from a general IOReturn value.
+
+The ACL is shared: the helper never calls `closeConnection`, and the link may
+remain connected after it exits. The operator may need to disconnect only the
+phone manually before a later strict DISCOVER probe. If an authentication-required
+comparison becomes warranted, a public async overload exists. Synchronous
+`requestAuthentication` explicitly initiates pairing and is not used here.
 
 ## API references
 
