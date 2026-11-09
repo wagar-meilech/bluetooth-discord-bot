@@ -32,12 +32,107 @@
       "stderr_bytes": 28254,
       "stderr_persisted": false,
       "finished_at": "2026-11-09T21:35:38.691200+00:00"
+    },
+    {
+      "started_at": "2026-11-09T21:38:30.072313+00:00",
+      "binary_sha256": "8eb4fd2357e12de8c0f3546518b472f6acd1d5de06bdac849b2a926a477c38f4",
+      "arguments": [
+        "--discover-phone"
+      ],
+      "report": {
+        "automatic_pairing_requested": false,
+        "connection_started": false,
+        "context_before_selector": {
+          "authorization_scope": "CoreBluetooth only; not proof of Classic channel permission",
+          "controller_power": 1,
+          "core_bluetooth_authorization": 3
+        },
+        "find_existing": false,
+        "fresh_identity_diagnostic": {
+          "address_comparison": "NSString_isEqualToString_content_only_in_memory",
+          "address_match_count": 2,
+          "equality_match_count": 2,
+          "inventory_count": 15,
+          "inventory_nonempty_address_count": 15,
+          "inventory_valid_address_count": 15,
+          "selected_address_nonempty": true,
+          "selected_address_valid": true,
+          "unexpected_entry_count": 0,
+          "unique_candidate_count": 2
+        },
+        "full_feasibility_gate": "not_passed",
+        "inquiry_by_probe": false,
+        "live_audio": "not_tested",
+        "media_configuration_sent": false,
+        "mode": "discover-phone",
+        "os_selector_may_start_inquiry": true,
+        "schema": 1,
+        "selected_object_is_paired": true,
+        "selector_response": -1000,
+        "status": "selected_phone_has_duplicate_fresh_paired_matches"
+      },
+      "exit_code": 3,
+      "stderr_bytes": 17988,
+      "stderr_persisted": false,
+      "finished_at": "2026-11-09T21:38:53.002753+00:00"
+    },
+    {
+      "started_at": "2026-11-09T21:41:40.410724+00:00",
+      "binary_sha256": "4b4e750c7dd9ea1ac703870d89cfb0485705b9080d68054d505f060aa6b56c53",
+      "arguments": [
+        "--discover-phone"
+      ],
+      "report": {
+        "status": "non_json_output",
+        "stdout_bytes": 0
+      },
+      "exit_code": -15,
+      "stderr_bytes": 564354,
+      "stderr_persisted": false,
+      "finished_at": "2026-11-09T21:44:24.794569+00:00",
+      "diagnostic_interpretation": {
+        "status": "legacy_native_open_blocked_before_return",
+        "observation": "One-second sample of own probe main thread showed the public legacy open calling the synchronous open path and waiting inside Apple framework.",
+        "stack_methods": [
+          "IOBluetoothDevice openL2CAPChannel:findExisting:newChannel:",
+          "IOBluetoothDevice instantiateChannel:findExisting:newChannel:",
+          "IOBluetoothDevice openL2CAPChannelSync:withPSM:withConfiguration:delegate:",
+          "IOBluetoothL2CAPChannel waitforChanneOpen"
+        ],
+        "connection_attempted": true,
+        "owned_channel_returned_to_rust": false,
+        "discover_request_sent": false,
+        "response_timer_reached": false,
+        "termination": "SIGTERM sent only to own stuck probe PID",
+        "native_cleanup_confirmed": false,
+        "radio_reset_or_device_close_connection_called": false,
+        "stack_artifact": "private local stack sample; not published"
+      },
+      "coordinator_diagnostic": {
+        "own_process_sample_only": true,
+        "sample_seconds": 1,
+        "observed_main_stack": [
+          "-[IOBluetoothDevice openL2CAPChannel:findExisting:newChannel:]",
+          "-[IOBluetoothDevice instantiateChannel:findExisting:newChannel:]",
+          "-[IOBluetoothDevice openL2CAPChannelSync:withPSM:withConfiguration:delegate:]",
+          "-[IOBluetoothL2CAPChannel waitforChanneOpen]"
+        ],
+        "observation": "Legacy call remained inside native synchronous open/wait with nested callbacks. The Rust postcall timer and delegate/write path had not been reached.",
+        "termination": "Coordinator sent SIGTERM to this helper PID only after approximately 164 seconds.",
+        "owned_returned_channel": "not_observed",
+        "discover_request_sent": false,
+        "cleanup_confirmed": false
+      }
     }
   ],
   "interpretation": {
     "first_attempt": "OS selection succeeded and selected object reported paired, but exact fresh-inventory identity correlation failed before any channel open. Match-count cause was not captured by that binary.",
     "native_discover": "not_yet_attempted",
     "live_audio": "not_tested",
-    "full_feasibility_gate": "not_passed"
+    "full_feasibility_gate": "not_passed",
+    "second_attempt": "Fresh inventory returned two records/references matching both public object equality and the exact selected address. The probe incorrectly counted matching records as distinct identity candidates, so it stopped before opening. This does not establish two different devices or pairing-store corruption.",
+    "correction_prepared": "Group only the selected valid non-wildcard address, require all matched fresh records to agree on paired/disconnected state, and retain one verified fresh object. Conflicts still fail closed. No OS pairing-store edits.",
+    "third_attempt": "After exact-address grouping, the legacy public open entered a synchronous native wait despite the SDK asynchronous description. The 20-second Rust timer was positioned after the call and could not run. Coordinator terminated only the helper; no channel object returned to Rust, no DISCOVER request was submitted, and cleanup is unconfirmed.",
+    "current_preparation": "Legacy open removed. Public modern Async plus strict disconnected snapshot and own-delegate/outgoing/PSM guards is a controlled experimental ownership basis, not an atomic force-new reservation. A Rust-only 25-second watchdog is armed before entering native open and spans callbacks/cleanup. Its expiry does only POSIX _exit(6), with no telemetry or ObjC work; stdout can be empty and native cleanup is unconfirmed. Fatal-path stdout telemetry was removed during review so output backpressure cannot defeat termination."
   }
 }

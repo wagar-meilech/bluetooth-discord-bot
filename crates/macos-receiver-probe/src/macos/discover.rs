@@ -1,7 +1,7 @@
 use crate::avdtp;
 use objc2::{
     AnyThread, ClassType, DefinedClass, MainThreadMarker, define_class, msg_send, rc::Retained,
-    runtime::Bool, sel,
+    runtime::AnyObject, sel,
 };
 use objc2_app_kit::{NSApplication, NSApplicationActivationPolicy};
 use objc2_core_bluetooth::CBManager;
@@ -111,14 +111,37 @@ fn channel_id(channel: &IOBluetoothL2CAPChannel) -> usize {
     std::ptr::from_ref(channel).addr()
 }
 
+const NATIVE_DEADLINE: Duration = Duration::from_secs(25);
+struct NativeWatchdog {
+    _cancel: mpsc::Sender<()>,
+}
+impl NativeWatchdog {
+    fn arm() -> std::io::Result<Self> {
+        let (cancel, completion) = mpsc::channel::<()>();
+        thread::Builder::new()
+            .name("bt-probe-deadline".into())
+            .spawn(move || {
+                if completion.recv_timeout(NATIVE_DEADLINE) == Err(mpsc::RecvTimeoutError::Timeout)
+                {
+                    // SAFETY: Only this helper process exits. No ObjC access,
+                    // allocation, telemetry, I/O, lock or atexit handler can
+                    // delay termination after the timer expires. Exit6 may
+                    // have no final JSON; native cleanup is then unconfirmed.
+                    unsafe { libc::_exit(6) };
+                }
+            })?;
+        Ok(Self { _cancel: cancel })
+    }
+}
+
 struct OwnedChannel {
     channel: Retained<IOBluetoothL2CAPChannel>,
     cleanup_attempted: bool,
 }
 impl OwnedChannel {
     fn close(&mut self) -> (i32, i32) {
-        // SAFETY: Only the explicit findExisting:NO result with no preexisting
-        // ACL/delegate is adopted. Never close the device/baseband connection.
+        // SAFETY: Only the outgoing Async result with this supplied delegate,
+        // checked PSM, and no preexisting ACL is adopted. Never close baseband.
         let detached = unsafe { self.channel.setDelegate(None) };
         let closed = unsafe { self.channel.closeChannel() };
         self.cleanup_attempted = true;
@@ -142,7 +165,19 @@ fn valid_address(address: &NSString) -> bool {
     // Public address strings normally use six hex pairs separated by '-'.
     // Accept the equivalent ':' or compact representation for diagnostics.
     let compact: String = value.chars().filter(|c| *c != '-' && *c != ':').collect();
-    compact.len() == 12 && compact.bytes().all(|byte| byte.is_ascii_hexdigit())
+    compact.len() == 12
+        && compact.bytes().all(|byte| byte.is_ascii_hexdigit())
+        && !compact.bytes().all(|byte| byte == b'0')
+        && !compact.bytes().all(|byte| byte.eq_ignore_ascii_case(&b'f'))
+}
+
+struct FreshMatch {
+    device: Retained<IOBluetoothDevice>,
+    equality_match: bool,
+    address: Option<Retained<NSString>>,
+    address_matches_selected: bool,
+    paired: bool,
+    connected: bool,
 }
 
 fn selected_fresh_paired(
@@ -226,40 +261,90 @@ fn selected_fresh_paired(
         equality_matches += usize::from(equal);
         address_matches += usize::from(address_equal);
         if equal || address_equal {
-            matches.push((device, equal));
+            let paired = unsafe { device.isPaired() };
+            let connected = unsafe { device.isConnected() };
+            matches.push(FreshMatch {
+                device,
+                equality_match: equal,
+                address,
+                address_matches_selected: address_equal,
+                paired,
+                connected,
+            });
         }
     }
+    let all_selected_address = selected_address_valid
+        && matches
+            .iter()
+            .all(|candidate| candidate.address_matches_selected);
+    let paired_consistent = matches.first().is_some_and(|first| {
+        matches
+            .iter()
+            .all(|candidate| candidate.paired == first.paired)
+    });
+    let connected_consistent = matches.first().is_some_and(|first| {
+        matches
+            .iter()
+            .all(|candidate| candidate.connected == first.connected)
+    });
+    let distinct_identities = {
+        let mut identities: Vec<&NSString> = Vec::new();
+        let mut all_valid = true;
+        for candidate in &matches {
+            if let Some(address) = candidate.address.as_deref().filter(|a| valid_address(a)) {
+                if !identities
+                    .iter()
+                    .any(|existing| existing.isEqualToString(address))
+                {
+                    identities.push(address);
+                }
+            } else {
+                all_valid = false;
+            }
+        }
+        all_valid.then_some(identities.len())
+    };
     report["fresh_identity_diagnostic"] = json!({
         "inventory_count":fresh.count(), "unexpected_entry_count":unexpected_entries,
         "equality_match_count":equality_matches,"address_match_count":address_matches,
-        "unique_candidate_count":matches.len(),
+        "matching_record_count":matches.len(),"distinct_identity_count":distinct_identities,
+        "matching_records_all_selected_address":all_selected_address,
+        "matching_paired_states_consistent":paired_consistent,
+        "matching_connected_states_consistent":connected_consistent,
         "selected_address_nonempty":selected_address_nonempty,
-        "selected_address_valid":selected_address_valid,
+        "selected_address_valid_non_wildcard":selected_address_valid,
         "inventory_nonempty_address_count":nonempty_addresses,
-        "inventory_valid_address_count":valid_addresses,
+        "inventory_valid_non_wildcard_address_count":valid_addresses,
         "address_comparison":"NSString_isEqualToString_content_only_in_memory"
     });
-    if matches.len() != 1 {
-        report["status"] = json!(if matches.is_empty() {
-            "selected_phone_absent_from_fresh_paired_inventory"
-        } else {
-            "selected_phone_has_duplicate_fresh_paired_matches"
-        });
+    if matches.is_empty() {
+        report["status"] = json!("selected_phone_absent_from_fresh_paired_inventory");
         return None;
     }
-    let (device, equality_match) = matches.pop().unwrap();
-    report["selected_identity_match"] = json!(if equality_match {
-        "public_equality"
+    // Multiple cached records are one identity only when every record matches
+    // the operator-selected valid non-wildcard address and states agree. Never
+    // choose between conflicting records or mutate the OS pairing store.
+    if !all_selected_address || distinct_identities != Some(1) {
+        report["status"] = json!("selected_phone_fresh_identity_conflict");
+        return None;
+    }
+    if !paired_consistent || !connected_consistent {
+        report["status"] = json!("selected_phone_fresh_state_conflict");
+        return None;
+    }
+    let candidate = matches.pop().unwrap();
+    report["fresh_selected_is_paired"] = json!(candidate.paired);
+    report["fresh_selected_is_connected"] = json!(candidate.connected);
+    if !candidate.paired || candidate.connected {
+        report["status"] = json!("fresh_disconnected_paired_phone_required");
+        return None;
+    }
+    report["selected_identity_match"] = json!(if candidate.equality_match {
+        "public_equality_and_exact_local_address_group"
     } else {
-        "local_memory_address_comparison"
+        "exact_local_address_group"
     });
-    let paired = unsafe { device.isPaired() };
-    report["fresh_selected_is_paired"] = json!(paired);
-    if !paired {
-        report["status"] = json!("selected_phone_not_paired");
-        return None;
-    }
-    Some(device)
+    Some(candidate.device)
 }
 
 fn context_ready(controller: &IOBluetoothHostController, report: &mut Value, phase: &str) -> bool {
@@ -285,7 +370,10 @@ fn context_ready(controller: &IOBluetoothHostController, report: &mut Value, pha
 pub(super) fn run() -> (Value, u8) {
     let mut report = json!({"schema":1,"mode":"discover-phone","status":"phone_preparation_unavailable",
         "connection_started":false,"inquiry_by_probe":false,"os_selector_may_start_inquiry":true,
-        "automatic_pairing_requested":false,"find_existing":false,"media_configuration_sent":false,
+        "automatic_pairing_requested":false,"open_api":"openL2CAPChannelAsync:withPSM:delegate:",
+        "existing_acl_refused":true,"atomic_exclusive_channel_reservation":false,
+        "ownership_basis":"disconnected_snapshot_public_new_channel_contract_expected_delegate_outgoing_psm",
+        "media_configuration_sent":false,
         "live_audio":"not_tested","full_feasibility_gate":"not_passed"});
     let Some(main) = MainThreadMarker::new() else {
         return (report, 3);
@@ -308,9 +396,9 @@ pub(super) fn run() -> (Value, u8) {
         return (report, 3);
     };
     let class = device.class();
-    let open_selector = sel!(openL2CAPChannel:findExisting:newChannel:);
+    let open_selector = sel!(openL2CAPChannelAsync:withPSM:delegate:);
     if class
-        .verify_sel::<(u16, Bool, *mut *mut IOBluetoothL2CAPChannel), i32>(open_selector)
+        .verify_sel::<(*mut *mut IOBluetoothL2CAPChannel, u16, *mut AnyObject), i32>(open_selector)
         .is_err()
     {
         report["status"] = json!("fresh_open_api_abi_unsupported");
@@ -329,12 +417,34 @@ pub(super) fn run() -> (Value, u8) {
         report["status"] = json!("fresh_disconnected_paired_phone_required");
         return (report, 3);
     }
+    let (sender, receiver) = mpsc::sync_channel(MAX_EVENTS);
+    let overflow = Arc::new(AtomicBool::new(false));
+    let delegate = DiscoverDelegate::new(sender, overflow.clone());
+    // One delegate survives until process exit, including callbacks during open.
+    let delegate = Retained::into_raw(delegate);
+    let delegate = unsafe { &*delegate };
+    let watchdog = match NativeWatchdog::arm() {
+        Ok(watchdog) => watchdog,
+        Err(error) => {
+            report["status"] = json!("native_watchdog_unavailable");
+            report["error_kind"] = json!(format!("{:?}", error.kind()));
+            return (report, 3);
+        }
+    };
     let mut channel = None;
-    #[allow(deprecated)]
-    let opened =
-        unsafe { device.openL2CAPChannel_findExisting_newChannel(PSM, false, Some(&mut channel)) };
+    report["native_watchdog_seconds"] = json!(NATIVE_DEADLINE.as_secs());
+    report["native_watchdog_armed_before_open"] = json!(true);
     report["connection_started"] = json!(true);
+    // The public Async contract says new channel; its implementation can bind
+    // an underlying existing channel. Our experimental ownership basis is the
+    // immediately disconnected device plus outgoing/PSM/own-delegate checks,
+    // not an atomic reservation against concurrent system activity.
+    // The delegate is ready before entering any native open call.
+    let opened = unsafe {
+        device.openL2CAPChannelAsync_withPSM_delegate(Some(&mut channel), PSM, Some(delegate))
+    };
     report["open_ioreturn"] = json!(opened);
+    report["output_channel_present"] = json!(channel.is_some());
     if opened != 0 {
         report["status"] = json!("fresh_open_not_started");
         return (report, 5);
@@ -343,9 +453,18 @@ pub(super) fn run() -> (Value, u8) {
         report["status"] = json!("fresh_open_returned_no_channel");
         return (report, 5);
     };
-    // A contradictory existing delegate/incoming result is never adopted.
-    if unsafe { channel.delegate() }.is_some() || unsafe { channel.isIncoming() } {
+    let our_delegate = unsafe { channel.delegate() }
+        .as_deref()
+        .is_some_and(|assigned| std::ptr::eq(assigned, delegate as &AnyObject));
+    let outgoing = !unsafe { channel.isIncoming() };
+    let actual_psm = unsafe { channel.PSM() };
+    report["returned_channel_has_supplied_delegate"] = json!(our_delegate);
+    report["returned_channel_outgoing"] = json!(outgoing);
+    report["returned_channel_psm"] = json!(actual_psm);
+    // A contradictory delegate/incoming/PSM result is never adopted or closed.
+    if !our_delegate || !outgoing || actual_psm != PSM {
         report["status"] = json!("fresh_channel_ownership_not_established");
+        report["cleanup_unconfirmed"] = json!(true);
         return (report, 5);
     }
     let mut owned = OwnedChannel {
@@ -354,17 +473,8 @@ pub(super) fn run() -> (Value, u8) {
     };
     let identity = channel_id(&owned.channel);
     report["fresh_channel_owned"] = json!(true);
-    let (sender, receiver) = mpsc::sync_channel(MAX_EVENTS);
-    let overflow = Arc::new(AtomicBool::new(false));
-    let delegate = DiscoverDelegate::new(sender, overflow.clone());
-    // One delegate and two request bytes intentionally survive until this
-    // one-shot process exits, keeping queued callbacks/pending writes valid.
-    let delegate = Retained::into_raw(delegate);
-    let delegate = unsafe { &*delegate };
-    let attached = unsafe { owned.channel.setDelegate(Some(delegate)) };
-    report["delegate_ioreturn"] = json!(attached);
     let mut code = 5;
-    if attached == 0 {
+    {
         let request = Box::leak(Box::new(avdtp::DISCOVER_REQUEST));
         let deadline = Instant::now() + Duration::from_secs(20);
         let mut sent = false;
@@ -460,8 +570,6 @@ pub(super) fn run() -> (Value, u8) {
         report["owned_channel_closed_callback_observed"] = json!(closed_observed);
         report["ignored_events"] = json!(ignored);
         report["discover_request_sent"] = json!(sent);
-    } else {
-        report["status"] = json!("delegate_attach_failed");
     }
     let (detached, closed) = owned.close();
     report["delegate_detach_ioreturn"] = json!(detached);
@@ -479,5 +587,9 @@ pub(super) fn run() -> (Value, u8) {
         report["status"] = json!("owned_channel_cleanup_failed");
         code = 5;
     }
+    // Complete the own-channel retain before disarming the native deadline.
+    drop(owned);
+    // Dropping the sender disarms the Rust-only deadline on every normal path.
+    drop(watchdog);
     (report, code)
 }

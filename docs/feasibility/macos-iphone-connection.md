@@ -64,9 +64,12 @@ target/debug/macos-receiver-probe --discover-phone
 This explicit mode checks controller power and CoreBluetooth authorization,
 then opens the public OS device picker. Select the paired iPhone locally.
 The picker may start OS-managed discovery but is not the pairing panel. The
-retained selection must match exactly one device in a fresh paired inventory,
-using public object equality or address comparison **only in process memory**.
-Names and addresses are never emitted by this mode.
+retained selection must correlate to one fresh paired identity, using public
+object equality and exact address comparison **only in process memory**. Multiple
+records/references may represent that same identity: all must have the selected
+valid non-wildcard address and consistent paired/disconnected state before one
+fresh object is retained. Conflicting identities or states fail closed. The
+helper never changes the OS pairing store. Names and addresses are not emitted.
 
 After the modal picker the helper rechecks power, authorization, paired state,
 and `isConnected == false`. It refuses an existing ACL rather than adopting or
@@ -75,16 +78,31 @@ device pair. If necessary, disconnect only the phone manually before trying a
 reviewed test. No radio setter or automatic disconnect is used. CoreBluetooth
 status 3 is a context check, not proof of Classic Bluetooth channel permission.
 
-The helper verifies the deprecated public async fresh-open selector's ABI and
-uses `openL2CAPChannel:findExisting:NO:newChannel:` on PSM 0x19. It adopts only an
-explicitly new outgoing result with no existing delegate. A public main run loop
-handles callbacks for at most 20 seconds after selection. The only request is
-AVDTP DISCOVER `[0x10, 0x01]`; no capability negotiation, media configuration or
-streaming command is sent. Wrong transactions and unsolicited commands are
-counted/ignored while the outstanding response waits. Oversize responses, queue
-overflow, unsupported fragments, malformed responses and native errors fail
-closed. An accepted response without an audio source SEP proves no usable audio
-source. Even a source SEP is signaling evidence only.
+The helper verifies the public `openL2CAPChannelAsync:withPSM:delegate:` ABI and
+supplies its own retained delegate before the call. It checks the returned
+channel is outgoing, has requested PSM 0x19 and that exact supplied delegate.
+The public API's new-channel contract and immediately disconnected snapshot are
+the experimental ownership basis. Static implementation inspection found that
+an initializer can bind an underlying channel; this API is not an atomic
+force-new reservation against concurrent OS activity. Contradictory ownership
+results are not adopted or closed.
+
+A Rust-only 25-second process watchdog is armed **before native open** and stays
+active through native validation, run-loop callbacks, writes and cleanup. If
+native progress blocks, expiry does only POSIX `_exit(6)`, terminating this
+helper. It performs no fatal-path allocation, stdout locking/writing/flushing,
+Objective-C access or native atexit work. A forced exit 6 may therefore have no
+final JSON; the collector must record deadline termination and native cleanup
+as unconfirmed. This keeps output backpressure independent of the deadline.
+The operator's modal selection precedes this native operation deadline.
+
+The main run loop waits at most 20 seconds after a returned channel. The only
+request is AVDTP DISCOVER `[0x10, 0x01]`; no capability negotiation, media
+configuration or streaming command is sent. Wrong transactions and unsolicited
+commands are counted/ignored while the outstanding response waits. Oversize
+responses, queue overflow, unsupported fragments, malformed responses and native
+errors fail closed. An accepted response without an audio source SEP proves no
+usable audio source. Even a source SEP is signaling evidence only.
 
 Cleanup detaches the delegate and requests close on this owned channel only.
 Close-request acceptance and observed native closure are distinct report fields.
@@ -127,9 +145,26 @@ and selected-object `isPaired=true`, then failed exact fresh-inventory correlati
 before opening any channel (`connection_started=false`, exit 3). That binary did
 not report whether there were zero or duplicate matches. Its actual hash/output
 is preserved in [the connection-attempt artifact](macos-avdtp-connection-results.json).
-The next build adds sanitized match/address-availability counts and explicit
-NSString content comparison while retaining the unique fresh-identity requirement.
-No outbound DISCOVER packet has yet been sent.
+A second diagnostic run found two fresh records/references matching both object
+equality and the exact selected address, among 15 inventory entries. It also
+stopped before connection (exit 3). The probe had incorrectly equated multiple
+matching records with multiple identities. This does not show different devices
+or pairing-store corruption. The corrected build groups the exact selected
+non-wildcard address only when all matched records agree on paired/disconnected
+state. It preserves raw match counts and reports distinct identity count.
+
+The grouped retry reached the deprecated public open call, which blocked inside
+`openL2CAPChannelSync` / `waitforChanneOpen` with nested callbacks, contrary to its
+SDK asynchronous wording. A coordinator sample inspected only the owned helper
+process. The Rust timer was after the call and never reached. After approximately
+164 seconds the coordinator terminated only that helper (SIGTERM, exit -15),
+which produced no stdout JSON. No returned channel was observed, no DISCOVER was
+submitted, and cleanup is unconfirmed. The original wrapper result and sanitized
+public-method stack summary are preserved in the connection artifact.
+
+The current build replaces that legacy call with modern Async and the pre-call
+hard process deadline described above. Its reviewed native retry is pending; no
+outbound DISCOVER packet has yet been sent.
 
 ## Evidence status
 
@@ -138,7 +173,7 @@ No outbound DISCOVER packet has yet been sent.
 | Read-only inventory | Observed 14 entries initially, 15 after panel; selected identity not established by counts |
 | OS pairing panel | Modal -1000; immediate selected isPaired=false; exit3; later phone-side stored pairing reported |
 | Offline AVDTP replay | 12 manual known-spec/invalid packet cases matched expected decode statuses/exits |
-| Outbound DISCOVER helper | Build/lint pass; first OS selection succeeded, fresh identity check stopped before connection; diagnostic retry prepared |
+| Outbound DISCOVER helper | Two identity failures before open; grouped legacy-open run blocked natively and was terminated; modern Async/watchdog build prepared |
 | Live phone audio / coexistence / full gate | Not passed |
 
 Standard A2DP sink SDP advertising and sink acceptor support remain mandatory for
