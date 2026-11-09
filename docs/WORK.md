@@ -33,7 +33,7 @@ meaningful transitions. GitHub issue links were checked on 2026-11-09.
 | BDB-002 | [Agree the product behavior, architecture constraints, and test seams through grilling (#1)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/1) | done | main | BDB-001 | Q25/Q26 confirmed; approved spec and tickets published |
 | BDB-003 | Publish the agreed spec and create implementation tickets | done | main | BDB-002 | [Spec #2](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/2) and tickets #3–#9 published |
 | BDB-004 | [Implement and validate the approved Rust bridge (spec #2)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/2) | blocked | main | BDB-003 | Native capability gate remains unpassed; BDB-005 is testing sink-initiated iPhone signaling |
-| BDB-005 | [Prove native macOS Bluetooth receiver feasibility (#3)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/3) | active | main | None | Reviewed pairing and modern Async DISCOVER helpers merged; latest phone test awaits operator selection, then a 25-second native deadline; no live audio evidence |
+| BDB-005 | [Prove native macOS Bluetooth receiver feasibility (#3)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/3) | active | main | None | Exact iPhone identity verified; modern Async open callback returned general error before DISCOVER; compare selected-object origin, then isolate baseband reachability |
 | BDB-006 | [Prove Windows Bluetooth input, isolation, and coexistence (#4)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/4) | blocked | main | None | Windows CI passed; verified executable ready, awaiting real phone/operator results in windows-hardware-results.md |
 | BDB-007 | [Build minimal local audio-to-Discord feasibility harness (#5)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/5) | planned | unassigned | BDB-006 | Reuse a proven native input for the common harness; full gate still requires Mac and Windows |
 | BDB-008 | [Record complete two-platform hardware feasibility gate (#6)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/6) | planned | unassigned | BDB-005, BDB-006, BDB-007 | Record both real source-to-listener paths; no full app until passed |
@@ -95,6 +95,9 @@ grouping, and a modern Async DISCOVER probe. The operator confirmed phone-side
 stored pairing. A legacy open call blocked before returning a channel and was
 stopped; it sent no DISCOVER. The replacement has an independent 25-second
 own-process deadline, with cleanup explicitly unconfirmed on forced exit.
-Host checks, Windows-target Clippy and 12 offline packet cases passed. The latest
-native test is waiting for operator selection; neither signaling reception nor
-live audio/coexistence has passed.
+Host checks, Windows-target Clippy and 12 offline packet cases passed. Modern
+Async returned a guarded outgoing PSM 0x19 object, then open completion reported
+general error 0xe00002bc before DISCOVER. Its close request was accepted; closure
+was not observed. An object-origin control is pending; baseband reachability is
+the next discriminating control if needed. Neither signaling reception nor live
+audio/coexistence has passed.
