@@ -123,16 +123,95 @@
         "discover_request_sent": false,
         "cleanup_confirmed": false
       }
+    },
+    {
+      "started_at": "2026-11-09T21:53:26.227739+00:00",
+      "binary_sha256": "37139866f5d10e814f6f351dbcd9d4cd2b8416c89377acfd673c02503478cc9b",
+      "arguments": [
+        "--discover-phone"
+      ],
+      "report": {
+        "atomic_exclusive_channel_reservation": false,
+        "automatic_pairing_requested": false,
+        "connection_started": true,
+        "context_before_open": {
+          "authorization_scope": "CoreBluetooth only; not proof of Classic channel permission",
+          "controller_power": 1,
+          "core_bluetooth_authorization": 3
+        },
+        "context_before_selector": {
+          "authorization_scope": "CoreBluetooth only; not proof of Classic channel permission",
+          "controller_power": 1,
+          "core_bluetooth_authorization": 3
+        },
+        "delegate_detach_ioreturn": 0,
+        "device_close_connection_called": false,
+        "discover_request_sent": false,
+        "existing_acl_refused": true,
+        "fresh_channel_owned": true,
+        "fresh_identity_diagnostic": {
+          "address_comparison": "NSString_isEqualToString_content_only_in_memory",
+          "address_match_count": 2,
+          "distinct_identity_count": 1,
+          "equality_match_count": 2,
+          "inventory_count": 15,
+          "inventory_nonempty_address_count": 15,
+          "inventory_valid_non_wildcard_address_count": 15,
+          "matching_connected_states_consistent": true,
+          "matching_paired_states_consistent": true,
+          "matching_record_count": 2,
+          "matching_records_all_selected_address": true,
+          "selected_address_nonempty": true,
+          "selected_address_valid_non_wildcard": true,
+          "unexpected_entry_count": 0
+        },
+        "fresh_selected_is_connected": false,
+        "fresh_selected_is_paired": true,
+        "full_feasibility_gate": "not_passed",
+        "ignored_events": 0,
+        "inquiry_by_probe": false,
+        "live_audio": "not_tested",
+        "media_configuration_sent": false,
+        "mode": "discover-phone",
+        "native_watchdog_armed_before_open": true,
+        "native_watchdog_seconds": 25,
+        "open_api": "openL2CAPChannelAsync:withPSM:delegate:",
+        "open_complete_ioreturn": -536870212,
+        "open_ioreturn": 0,
+        "os_selector_may_start_inquiry": true,
+        "output_channel_present": true,
+        "owned_channel_close_confirmed": false,
+        "owned_channel_close_request_accepted": true,
+        "owned_channel_close_request_ioreturn": 0,
+        "owned_channel_closed_callback_observed": false,
+        "owned_channel_retained_until_process_exit": true,
+        "ownership_basis": "disconnected_snapshot_public_new_channel_contract_expected_delegate_outgoing_psm",
+        "phone_connected_before_open": false,
+        "phone_paired_before_open": true,
+        "returned_channel_has_supplied_delegate": true,
+        "returned_channel_outgoing": true,
+        "returned_channel_psm": 25,
+        "schema": 1,
+        "selected_identity_match": "public_equality_and_exact_local_address_group",
+        "selected_object_is_paired": true,
+        "selector_response": -1000,
+        "status": "channel_open_failed"
+      },
+      "exit_code": 5,
+      "stderr_bytes": 138596,
+      "stderr_persisted": false,
+      "finished_at": "2026-11-09T22:00:52.580568+00:00"
     }
   ],
   "interpretation": {
     "first_attempt": "OS selection succeeded and selected object reported paired, but exact fresh-inventory identity correlation failed before any channel open. Match-count cause was not captured by that binary.",
-    "native_discover": "not_yet_attempted",
+    "native_discover": "request_not_sent_channel_open_failed",
     "live_audio": "not_tested",
     "full_feasibility_gate": "not_passed",
     "second_attempt": "Fresh inventory returned two records/references matching both public object equality and the exact selected address. The probe incorrectly counted matching records as distinct identity candidates, so it stopped before opening. This does not establish two different devices or pairing-store corruption.",
     "correction_prepared": "Group only the selected valid non-wildcard address, require all matched fresh records to agree on paired/disconnected state, and retain one verified fresh object. Conflicts still fail closed. No OS pairing-store edits.",
     "third_attempt": "After exact-address grouping, the legacy public open entered a synchronous native wait despite the SDK asynchronous description. The 20-second Rust timer was positioned after the call and could not run. Coordinator terminated only the helper; no channel object returned to Rust, no DISCOVER request was submitted, and cleanup is unconfirmed.",
-    "current_preparation": "Legacy open removed. Public modern Async plus strict disconnected snapshot and own-delegate/outgoing/PSM guards is a controlled experimental ownership basis, not an atomic force-new reservation. A Rust-only 25-second watchdog is armed before entering native open and spans callbacks/cleanup. Its expiry does only POSIX _exit(6), with no telemetry or ObjC work; stdout can be empty and native cleanup is unconfirmed. Fatal-path stdout telemetry was removed during review so output backpressure cannot defeat termination."
+    "current_preparation": "Explicit original-picker-object variant prepared, retaining baseline behavior. It validates the same exact fresh group and original paired/disconnected state, records pointer-equality counts/booleans without pointer values, and skips native open if the selected object is exactly the baseline group member. Otherwise only the connection object origin changes. The pre-call25-second timer-only watchdog and ownership checks are unchanged. No variant native result yet.",
+    "async_attempt": "Modern Async returned submission status0 and an outgoing PSM25 channel object with the supplied delegate after exact selected-identity validation (two matching records, one identity; paired and disconnected). OpenComplete reported -536870212 / 0xe00002bc, SDK kIOReturnError (general error). No DISCOVER was sent. Delegate detach and owned close request returned0, but native closure was not observed. The helper returned exit5 normally, without watchdog termination; wrapper elapsed time includes operator modal selection."
   }
 }

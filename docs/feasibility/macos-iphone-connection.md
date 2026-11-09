@@ -26,8 +26,9 @@ hashes are in [the preparation artifact](macos-iphone-preparation-results.json).
 
 The operator subsequently confirmed the Mac appears in iPhone Settings →
 Bluetooth → My Devices as **Not Connected**. This supports phone-side stored
-pairing. The next native probe still requires exact selected-device correlation
-to the Mac's fresh paired inventory before it opens a channel. The operator was
+pairing. The native probe requires exact selected-device correlation to the Mac's fresh
+paired inventory before opening a channel; the completed Async attempt below
+subsequently passed that identity check. The operator was
 briefly unavailable after preparation and then returned; no phone tests were
 performed during that absence.
 
@@ -138,7 +139,7 @@ bridge-session/input boundary and from real installed-system evidence.
   in the grouped legacy retry; the subsequent native open did not return.
 - [ ] Helper refused an existing connection or other preparation prerequisite.
 - [ ] Fresh channel opened and a DISCOVER response was received.
-- [ ] Another result; add exact sanitized status/error below.
+- [x] Channel OpenComplete reported general error before any DISCOVER request.
 
 **Connection-test result / notes:**
 
@@ -164,9 +165,36 @@ which produced no stdout JSON. No returned channel was observed, no DISCOVER was
 submitted, and cleanup is unconfirmed. The original wrapper result and sanitized
 public-method stack summary are preserved in the connection artifact.
 
-The current build replaces that legacy call with modern Async and the pre-call
-hard process deadline described above. Its reviewed native retry is waiting in
-the operator's device picker; no outbound DISCOVER packet has yet been sent.
+The modern Async retry completed with exact identity group count1 from two
+matching records, fresh paired=true/connected=false, controller power1 and
+CoreBluetooth authorization3. `open_ioreturn=0` confirmed submission, and the
+returned object passed supplied-delegate, outgoing and PSM25 checks. Its
+OpenComplete callback then reported `-536870212` (`0xe00002bc`), the SDK's
+`kIOReturnError` / general error. This does not identify an HCI authentication
+error or distinguish baseband failure from an AVDTP-specific failure.
+
+No DISCOVER was submitted. Detach and owned close request returned0, but native
+closure was not observed. The helper returned exit5 normally; the watchdog did
+not terminate it. The wrapper's elapsed time includes operator modal selection
+and is not a measurement of native channel-open duration. The complete sanitized
+result remains in the connection artifact with its original `37139866…` hash.
+
+A smaller object-origin diagnostic is now prepared before adding a baseband
+control:
+
+```sh
+target/debug/macos-receiver-probe --discover-phone-selected-object
+```
+
+The baseline replaces the picker result with a fresh group member; this explicit
+variant retains the original OS-picked object after the same exact fresh-group
+validation and an additional original paired/disconnected recheck. It emits only
+exact-object record counts and pointer-equality booleans, never pointer values.
+If the original and baseline objects are identical, it stops before native open
+with `selected_object_variant_matches_baseline_object` rather than repeating an
+equivalent failed call. Otherwise only the object origin differs; context,
+ownership, packet and hard-deadline guards remain. Distinct backend wrappers are
+a hypothesis, not an established cause. No actual variant result is recorded yet.
 
 ## Evidence status
 
@@ -175,7 +203,7 @@ the operator's device picker; no outbound DISCOVER packet has yet been sent.
 | Read-only inventory | Observed 14 entries initially, 15 after panel; selected identity not established by counts |
 | OS pairing panel | Modal -1000; immediate selected isPaired=false; exit3; later phone-side stored pairing reported |
 | Offline AVDTP replay | 12 manual known-spec/invalid packet cases matched expected decode statuses/exits |
-| Outbound DISCOVER helper | Two identity failures before open; grouped legacy-open run blocked natively and was terminated; modern Async/watchdog build prepared |
+| Outbound DISCOVER helper | Modern Async submission0 and returned-object guards passed; OpenComplete general error, no DISCOVER sent; close requested0, closure unconfirmed |
 | Live phone audio / coexistence / full gate | Not passed |
 
 Standard A2DP sink SDP advertising and sink acceptor support remain mandatory for
@@ -197,6 +225,25 @@ The offline replay artifact preserves the tested binary's hash. Actual operator
 runs preserve their own binary hashes independently of later source builds.
 Windows-target workspace Clippy with static CRT also passed after the Mac-only
 request constant was conditionally compiled for macOS.
+
+## Next public control if object-origin evidence does not resolve the failure
+
+The smallest separate transport control is public `openConnection:` with a
+non-nil retained callback target. SDK27 `IOBluetoothDevice.h` documents asynchronous
+`connectionComplete:status:` delivery, default page timeout and no authentication
+requirement. Reusing operator selection, exact identity validation, disconnected
+precondition, main run loop and the pre-call hard watchdog could test baseband
+reachability without opening L2CAP or sending DISCOVER. This is an API plan only;
+no baseband-control implementation or native run is claimed.
+
+A successful callback plus public `isConnected=true` would support baseband
+reachability, not authenticated A2DP. A failure would remain a lower-layer
+prerequisite diagnostic. The ACL is shared: the helper must not call
+`closeConnection`, and the link may remain connected after it exits. The operator
+may need to disconnect only the phone manually before a later strict DISCOVER
+probe. If an authentication-required comparison is warranted later, the public
+async overload exists; synchronous `requestAuthentication` explicitly initiates
+pairing and is not part of this proposed control.
 
 ## API references
 

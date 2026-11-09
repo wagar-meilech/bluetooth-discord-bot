@@ -183,6 +183,7 @@ struct FreshMatch {
 fn selected_fresh_paired(
     report: &mut Value,
     main: MainThreadMarker,
+    use_original_picker_object: bool,
 ) -> Option<Retained<IOBluetoothDevice>> {
     let app = NSApplication::sharedApplication(main);
     app.setActivationPolicy(NSApplicationActivationPolicy::Accessory);
@@ -232,6 +233,7 @@ fn selected_fresh_paired(
     let selected_address = unsafe { selected.getAddressString() };
     let selected_address_nonempty = selected_address.as_ref().is_some_and(|a| !a.is_empty());
     let selected_address_valid = selected_address.as_ref().is_some_and(|a| valid_address(a));
+    let mut exact_object_matches = 0;
     let mut equality_matches = 0;
     let mut address_matches = 0;
     let mut nonempty_addresses = 0;
@@ -243,6 +245,7 @@ fn selected_fresh_paired(
             unexpected_entries += 1;
             continue;
         };
+        exact_object_matches += usize::from(std::ptr::eq(&*selected, &*device));
         let equal = selected.isEqual(Some(&device));
         #[allow(deprecated)]
         let address = unsafe { device.getAddressString() };
@@ -307,6 +310,7 @@ fn selected_fresh_paired(
     report["fresh_identity_diagnostic"] = json!({
         "inventory_count":fresh.count(), "unexpected_entry_count":unexpected_entries,
         "equality_match_count":equality_matches,"address_match_count":address_matches,
+        "exact_selected_object_record_count":exact_object_matches,
         "matching_record_count":matches.len(),"distinct_identity_count":distinct_identities,
         "matching_records_all_selected_address":all_selected_address,
         "matching_paired_states_consistent":paired_consistent,
@@ -344,7 +348,28 @@ fn selected_fresh_paired(
     } else {
         "exact_local_address_group"
     });
-    Some(candidate.device)
+    let original_is_baseline_object = std::ptr::eq(&*selected, &*candidate.device);
+    report["original_is_baseline_group_member_object"] = json!(original_is_baseline_object);
+    if use_original_picker_object {
+        // Controlled object-origin variation only: validate against the same
+        // fresh identity group, then retain the original operator-picked object.
+        let paired = unsafe { selected.isPaired() };
+        let connected = unsafe { selected.isConnected() };
+        report["original_selected_is_paired_after_validation"] = json!(paired);
+        report["original_selected_is_connected_after_validation"] = json!(connected);
+        if !paired || connected {
+            report["status"] = json!("original_selected_disconnected_paired_phone_required");
+            return None;
+        }
+        if original_is_baseline_object {
+            report["status"] = json!("selected_object_variant_matches_baseline_object");
+            report["object_origin_variant_native_open_skipped"] = json!(true);
+            return None;
+        }
+        Some(selected)
+    } else {
+        Some(candidate.device)
+    }
 }
 
 fn context_ready(controller: &IOBluetoothHostController, report: &mut Value, phase: &str) -> bool {
@@ -367,7 +392,7 @@ fn context_ready(controller: &IOBluetoothHostController, report: &mut Value, pha
     true
 }
 
-pub(super) fn run() -> (Value, u8) {
+pub(super) fn run(use_original_picker_object: bool) -> (Value, u8) {
     let mut report = json!({"schema":1,"mode":"discover-phone","status":"phone_preparation_unavailable",
         "connection_started":false,"inquiry_by_probe":false,"os_selector_may_start_inquiry":true,
         "automatic_pairing_requested":false,"open_api":"openL2CAPChannelAsync:withPSM:delegate:",
@@ -375,6 +400,16 @@ pub(super) fn run() -> (Value, u8) {
         "ownership_basis":"disconnected_snapshot_public_new_channel_contract_expected_delegate_outgoing_psm",
         "media_configuration_sent":false,
         "live_audio":"not_tested","full_feasibility_gate":"not_passed"});
+    report["mode"] = json!(if use_original_picker_object {
+        "discover-phone-selected-object"
+    } else {
+        "discover-phone"
+    });
+    report["connection_object_origin"] = json!(if use_original_picker_object {
+        "original_os_picker_after_fresh_group_validation"
+    } else {
+        "fresh_paired_inventory_group_member"
+    });
     let Some(main) = MainThreadMarker::new() else {
         return (report, 3);
     };
@@ -392,7 +427,7 @@ pub(super) fn run() -> (Value, u8) {
     if !context_ready(&controller, &mut report, "context_before_selector") {
         return (report, 3);
     }
-    let Some(device) = selected_fresh_paired(&mut report, main) else {
+    let Some(device) = selected_fresh_paired(&mut report, main, use_original_picker_object) else {
         return (report, 3);
     };
     let class = device.class();
