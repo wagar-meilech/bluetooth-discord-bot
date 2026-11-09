@@ -7,8 +7,8 @@ use objc2_app_kit::{NSApplication, NSApplicationActivationPolicy};
 use objc2_core_bluetooth::CBManager;
 use objc2_foundation::{NSDate, NSObject, NSObjectProtocol, NSRunLoop, NSString};
 use objc2_io_bluetooth::{
-    IOBluetoothDevice, IOBluetoothHostController, IOBluetoothL2CAPChannel,
-    IOBluetoothL2CAPChannelDelegate,
+    IOBluetoothDevice, IOBluetoothDeviceAsyncCallbacks, IOBluetoothHostController,
+    IOBluetoothL2CAPChannel, IOBluetoothL2CAPChannelDelegate,
 };
 use objc2_io_bluetooth_ui::{
     IOBluetoothDeviceSelectorController, kIOBluetoothServiceBrowserControllerOptionsNone,
@@ -36,6 +36,8 @@ enum Event {
     Closed(usize),
     Write(usize, i32),
     Oversized(usize),
+    DeviceConnection(usize, i32),
+    UnexpectedDeviceCallback,
 }
 struct DelegateState {
     sender: SyncSender<Event>,
@@ -95,6 +97,45 @@ define_class!(
         }
     }
 );
+// Device-connection callbacks use a separate target class so adding this
+// control does not change the existing L2CAP delegate's protocol/selector set.
+define_class!(
+    #[unsafe(super = NSObject)]
+    #[thread_kind = AnyThread]
+    #[ivars = DelegateState]
+    struct BasebandDelegate;
+    unsafe impl NSObjectProtocol for BasebandDelegate {}
+    unsafe impl IOBluetoothDeviceAsyncCallbacks for BasebandDelegate {
+        #[unsafe(method(connectionComplete:status:))]
+        fn connection_completed(&self, device: Option<&IOBluetoothDevice>, status: i32) {
+            let identity = device.map_or(0, |device| std::ptr::from_ref(device).addr());
+            self.ivars().push(Event::DeviceConnection(identity, status));
+        }
+        #[unsafe(method(remoteNameRequestComplete:status:))]
+        fn name_completed(&self, _device: Option<&IOBluetoothDevice>, _status: i32) {
+            self.ivars().push(Event::UnexpectedDeviceCallback);
+        }
+        #[unsafe(method(sdpQueryComplete:status:))]
+        fn sdp_completed(&self, _device: Option<&IOBluetoothDevice>, _status: i32) {
+            self.ivars().push(Event::UnexpectedDeviceCallback);
+        }
+    }
+);
+impl BasebandDelegate {
+    fn new(sender: SyncSender<Event>, overflow: Arc<AtomicBool>) -> Retained<Self> {
+        let this = Self::alloc().set_ivars(DelegateState { sender, overflow });
+        // SAFETY: NSObject init on a freshly allocated callback target.
+        unsafe { msg_send![super(this), init] }
+    }
+}
+impl DelegateState {
+    fn push(&self, event: Event) {
+        if self.sender.try_send(event).is_err() {
+            self.overflow.store(true, Ordering::Relaxed);
+        }
+    }
+}
+
 impl DiscoverDelegate {
     fn new(sender: SyncSender<Event>, overflow: Arc<AtomicBool>) -> Retained<Self> {
         let this = Self::alloc().set_ivars(DelegateState { sender, overflow });
@@ -102,9 +143,7 @@ impl DiscoverDelegate {
         unsafe { msg_send![super(this), init] }
     }
     fn push(&self, event: Event) {
-        if self.ivars().sender.try_send(event).is_err() {
-            self.ivars().overflow.store(true, Ordering::Relaxed);
-        }
+        self.ivars().push(event);
     }
 }
 fn channel_id(channel: &IOBluetoothL2CAPChannel) -> usize {
@@ -180,10 +219,17 @@ struct FreshMatch {
     connected: bool,
 }
 
+#[derive(Clone, Copy)]
+enum SelectionPurpose {
+    FreshInventoryDiscover,
+    OriginalDiscoverComparison,
+    OriginalBaseband,
+}
+
 fn selected_fresh_paired(
     report: &mut Value,
     main: MainThreadMarker,
-    use_original_picker_object: bool,
+    purpose: SelectionPurpose,
 ) -> Option<Retained<IOBluetoothDevice>> {
     let app = NSApplication::sharedApplication(main);
     app.setActivationPolicy(NSApplicationActivationPolicy::Accessory);
@@ -195,8 +241,17 @@ fn selected_fresh_paired(
         selector.clearAllowedUUIDs();
         selector.setOptions(kIOBluetoothServiceBrowserControllerOptionsNone);
         selector.setTitle(Some(&NSString::from_str("Choose paired iPhone")));
-        selector.setDescriptionText(Some(&NSString::from_str("Choose your paired, disconnected iPhone. This test only requests its Bluetooth audio endpoint list.")));
-        selector.setPrompt(Some(&NSString::from_str("Run DISCOVER test")));
+        let baseband_only = matches!(purpose, SelectionPurpose::OriginalBaseband);
+        selector.setDescriptionText(Some(&NSString::from_str(if baseband_only {
+            "Choose your paired, disconnected iPhone. This test only checks its Bluetooth connection."
+        } else {
+            "Choose your paired, disconnected iPhone. This test only requests its Bluetooth audio endpoint list."
+        })));
+        selector.setPrompt(Some(&NSString::from_str(if baseband_only {
+            "Run connection test"
+        } else {
+            "Run DISCOVER test"
+        })));
     }
     let class = selector.class();
     let response: isize = if class.verify_sel::<(), i32>(sel!(runModal)).is_ok() {
@@ -350,7 +405,7 @@ fn selected_fresh_paired(
     });
     let original_is_baseline_object = std::ptr::eq(&*selected, &*candidate.device);
     report["original_is_baseline_group_member_object"] = json!(original_is_baseline_object);
-    if use_original_picker_object {
+    if !matches!(purpose, SelectionPurpose::FreshInventoryDiscover) {
         // Controlled object-origin variation only: validate against the same
         // fresh identity group, then retain the original operator-picked object.
         let paired = unsafe { selected.isPaired() };
@@ -361,7 +416,9 @@ fn selected_fresh_paired(
             report["status"] = json!("original_selected_disconnected_paired_phone_required");
             return None;
         }
-        if original_is_baseline_object {
+        if original_is_baseline_object
+            && matches!(purpose, SelectionPurpose::OriginalDiscoverComparison)
+        {
             report["status"] = json!("selected_object_variant_matches_baseline_object");
             report["object_origin_variant_native_open_skipped"] = json!(true);
             return None;
@@ -427,7 +484,12 @@ pub(super) fn run(use_original_picker_object: bool) -> (Value, u8) {
     if !context_ready(&controller, &mut report, "context_before_selector") {
         return (report, 3);
     }
-    let Some(device) = selected_fresh_paired(&mut report, main, use_original_picker_object) else {
+    let purpose = if use_original_picker_object {
+        SelectionPurpose::OriginalDiscoverComparison
+    } else {
+        SelectionPurpose::FreshInventoryDiscover
+    };
+    let Some(device) = selected_fresh_paired(&mut report, main, purpose) else {
         return (report, 3);
     };
     let class = device.class();
@@ -625,6 +687,133 @@ pub(super) fn run(use_original_picker_object: bool) -> (Value, u8) {
     // Complete the own-channel retain before disarming the native deadline.
     drop(owned);
     // Dropping the sender disarms the Rust-only deadline on every normal path.
+    drop(watchdog);
+    (report, code)
+}
+
+pub(super) fn connect_phone() -> (Value, u8) {
+    let mut report = json!({"schema":1,"mode":"connect-phone","status":"phone_preparation_unavailable",
+        "connection_started":false,"open_api":"openConnection:",
+        "connection_object_origin":"original_os_picker_after_fresh_group_validation",
+        "authentication_required":false,"authentication_request_sent":false,
+        "automatic_pairing_requested":false,"inquiry_by_probe":false,"os_selector_may_start_inquiry":true,
+        "l2cap_open_requested":false,"discover_request_sent":false,
+        "device_close_connection_called":false,"baseband_acl_exclusive_ownership":false,
+        "baseband_link_may_remain_connected":true,"live_audio":"not_tested",
+        "full_feasibility_gate":"not_passed"});
+    let Some(main) = MainThreadMarker::new() else {
+        return (report, 3);
+    };
+    if IOBluetoothHostController::class()
+        .class_method(sel!(defaultController))
+        .is_none()
+    {
+        report["status"] = json!("controller_api_unavailable");
+        return (report, 3);
+    }
+    let Some(controller) = (unsafe { IOBluetoothHostController::defaultController() }) else {
+        report["status"] = json!("controller_unavailable");
+        return (report, 3);
+    };
+    if !context_ready(&controller, &mut report, "context_before_selector") {
+        return (report, 3);
+    }
+    let Some(device) = selected_fresh_paired(&mut report, main, SelectionPurpose::OriginalBaseband)
+    else {
+        return (report, 3);
+    };
+    if device
+        .class()
+        .verify_sel::<(*mut AnyObject,), i32>(sel!(openConnection:))
+        .is_err()
+    {
+        report["status"] = json!("async_baseband_api_abi_unsupported");
+        return (report, 3);
+    }
+    if !context_ready(&controller, &mut report, "context_before_open") {
+        return (report, 3);
+    }
+    let paired = unsafe { device.isPaired() };
+    let connected = unsafe { device.isConnected() };
+    report["phone_paired_before_open"] = json!(paired);
+    report["phone_connected_before_open"] = json!(connected);
+    if !paired || connected {
+        report["status"] = json!("fresh_disconnected_paired_phone_required");
+        return (report, 3);
+    }
+    let (sender, receiver) = mpsc::sync_channel(MAX_EVENTS);
+    let overflow = Arc::new(AtomicBool::new(false));
+    let delegate = BasebandDelegate::new(sender, overflow.clone());
+    // The non-nil target makes this documented public API asynchronous.
+    // Retain target and selected device through one-shot process exit for any
+    // queued/pending callback, including timeout. Never close the shared ACL.
+    let delegate = unsafe { &*Retained::into_raw(delegate) };
+    let _ = Retained::into_raw(device.clone());
+    let identity = std::ptr::from_ref(&*device).addr();
+    let watchdog = match NativeWatchdog::arm() {
+        Ok(watchdog) => watchdog,
+        Err(error) => {
+            report["status"] = json!("native_watchdog_unavailable");
+            report["error_kind"] = json!(format!("{:?}", error.kind()));
+            return (report, 3);
+        }
+    };
+    report["native_watchdog_seconds"] = json!(NATIVE_DEADLINE.as_secs());
+    report["native_watchdog_armed_before_open"] = json!(true);
+    report["connection_started"] = json!(true);
+    // SAFETY: Verified public selector and live typed target on main. This
+    // overload uses the default page timeout and does not require authentication.
+    let submitted = unsafe { device.openConnection_(Some(delegate)) };
+    report["open_ioreturn"] = json!(submitted);
+    if submitted != 0 {
+        report["status"] = json!("baseband_submission_failed");
+        return (report, 5);
+    }
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let run_loop = NSRunLoop::mainRunLoop();
+    let mut ignored = 0u32;
+    let mut code = 5;
+    report["status"] = json!("baseband_callback_timeout");
+    'wait: while Instant::now() < deadline {
+        if overflow.load(Ordering::Relaxed) {
+            report["status"] = json!("callback_queue_overflow");
+            break;
+        }
+        for _ in 0..MAX_EVENTS {
+            if Instant::now() >= deadline {
+                break 'wait;
+            }
+            let Ok(event) = receiver.try_recv() else {
+                break;
+            };
+            match event {
+                Event::DeviceConnection(id, status) => {
+                    report["connection_complete_ioreturn"] = json!(status);
+                    report["callback_exact_selected_object"] = json!(id == identity);
+                    let connected = unsafe { device.isConnected() };
+                    report["phone_is_connected_after_callback"] = json!(connected);
+                    report["status"] = json!(if id != identity {
+                        "baseband_callback_identity_unverified"
+                    } else if status != 0 {
+                        "baseband_connection_failed"
+                    } else if connected {
+                        code = 0;
+                        "baseband_connected"
+                    } else {
+                        "baseband_callback_success_connection_not_observed"
+                    });
+                    break 'wait;
+                }
+                _ => {
+                    ignored += 1;
+                }
+            }
+        }
+        run_loop.runUntilDate(&NSDate::dateWithTimeIntervalSinceNow(0.02));
+        thread::sleep(Duration::from_millis(2));
+    }
+    report["ignored_events"] = json!(ignored);
+    // No L2CAP open, authentication/pairing request or ACL close is chained.
     drop(watchdog);
     (report, code)
 }
