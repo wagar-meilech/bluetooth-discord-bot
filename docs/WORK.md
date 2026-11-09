@@ -34,7 +34,7 @@ meaningful transitions. GitHub issue links were checked on 2026-11-09.
 | BDB-003 | Publish the agreed spec and create implementation tickets | done | main | BDB-002 | [Spec #2](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/2) and tickets #3–#9 published |
 | BDB-004 | [Implement and validate the approved Rust bridge (spec #2)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/2) | blocked | main | BDB-003 | Native Mac service publication returned nil; diagnose BDB-005 before downstream work |
 | BDB-005 | [Prove native macOS Bluetooth receiver feasibility (#3)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/3) | blocked | main | None | Same-binary control publishes at dynamic PSM0x1001 but returns no record at required AVDTP0x19; supported owned-receiver path unresolved |
-| BDB-006 | [Prove Windows Bluetooth input, isolation, and coexistence (#4)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/4) | active | /root/windows_audio_facts | None | Build the Windows receiver probe and downloadable CI artifact; actual hardware evidence still required |
+| BDB-006 | [Prove Windows Bluetooth input, isolation, and coexistence (#4)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/4) | blocked | main | None | Windows CI passed; verified executable ready, awaiting real phone/operator results in windows-hardware-results.md |
 | BDB-007 | [Build minimal local audio-to-Discord feasibility harness (#5)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/5) | planned | unassigned | BDB-006 | Reuse a proven native input for the common harness; full gate still requires Mac and Windows |
 | BDB-008 | [Record complete two-platform hardware feasibility gate (#6)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/6) | planned | unassigned | BDB-005, BDB-006, BDB-007 | Record both real source-to-listener paths; no full app until passed |
 | BDB-009 | [Implement native tray controls and scoped container lifecycle (#7)](https://github.com/wagar-meilech/bluetooth-discord-bot/issues/7) | planned | unassigned | BDB-008 | Await the complete hardware gate |
@@ -82,3 +82,8 @@ ticket and feature remain open/blocked. Further
 [controlled diagnosis](feasibility/macos-sdp-diagnosis.md) isolated requested-PSM
 dependence. Windows feasibility is being advanced independently; full product
 work remains behind the unchanged two-platform gate.
+
+Windows API code type-checks and the Windows CI release build/lint/artifact upload
+passed in run `42543599395`. The downloaded x86_64 executable matches its supplied
+SHA256. [Operator instructions and result fields](feasibility/windows-hardware-results.md)
+are ready. These checks do not observe Windows hardware, PCM, or coexistence.
